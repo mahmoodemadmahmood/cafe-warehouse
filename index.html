@@ -61,7 +61,6 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        /* إصلاح تمدد وتراكب حقول التاريخ في متصفح Safari على الآيفون */
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
@@ -112,10 +111,10 @@
                                 <span>نظام إدارة المخزن والجرد الذكي</span>
                                 <span id="sync-indicator" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-200 border border-emerald-400/40">
                                     <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    <span id="sync-label">حفظ محلي فوري</span>
+                                    <span id="sync-label">جاري الاتصال بالسحابة...</span>
                                 </span>
                             </h1>
-                            <p class="text-[11px] text-crimson-100/85 hidden sm:block">المتبقي = أول المدة + الإضافة - المصروف • 136 مادة مكتملة</p>
+                            <p class="text-[11px] text-crimson-100/85 hidden sm:block">المتبقي = أول المدة + الإضافة - المصروف</p>
                         </div>
                     </div>
                 </div>
@@ -169,9 +168,7 @@
     <!-- المحتوى الرئيسي -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-4">
 
-        <!-- ===================================================================== -->
         <!-- التبويب 1: المخزن والسحب والإضافة اليومية -->
-        <!-- ===================================================================== -->
         <section id="view-inventory" class="tab-view space-y-3.5">
             <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80 space-y-2.5">
                 <div class="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
@@ -197,17 +194,13 @@
                     </div>
                 </div>
 
-                <!-- أزرار فلترة الأقسام -->
                 <div id="category-pills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5"></div>
             </div>
 
-            <!-- شبكة بطاقات المواد -->
             <div id="inventory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
         </section>
 
-        <!-- ===================================================================== -->
-        <!-- التبويب 2: الجرد الأسبوعي (5 أعمدة: اسم المادة | أول المدة | الإضافة | المصروف | المتبقي) -->
-        <!-- ===================================================================== -->
+        <!-- التبويب 2: الجرد الأسبوعي -->
         <section id="view-report" class="tab-view hidden space-y-3.5">
             <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80 space-y-3 no-print">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -323,9 +316,7 @@
             </div>
         </section>
 
-        <!-- ===================================================================== -->
-        <!-- التبويب 3: سجل الحركات اليومي واللحظي -->
-        <!-- ===================================================================== -->
+        <!-- التبويب 3: سجل الحركات -->
         <section id="view-logs" class="tab-view hidden space-y-3.5">
             <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
                 <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -368,9 +359,7 @@
             </div>
         </section>
 
-        <!-- ===================================================================== -->
-        <!-- التبويب 4: التحليلات الذكية والنواقص ومقارنة الشفتات -->
-        <!-- ===================================================================== -->
+        <!-- التبويب 4: التحليلات والنواقص -->
         <section id="view-analytics" class="tab-view hidden space-y-4">
             <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
@@ -398,7 +387,7 @@
                 <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 shadow-xs">
                     <span class="text-[11px] font-bold text-amber-800 block">مواد متبقيها صفر (نافدة)</span>
                     <span id="stat-zero-items" class="text-2xl font-extrabold text-amber-900 mt-1 block">0</span>
-                    <span class="text-[11px] font-bold text-amber-700 mt-0.5 block">من أصل 136 مادة</span>
+                    <span class="text-[11px] font-bold text-amber-700 mt-0.5 block">من أصل <span id="stat-total-items-of">136</span> مادة</span>
                 </div>
                 <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
                     <span class="text-[11px] font-bold text-slate-500 block">المواد المتوفرة حالياً</span>
@@ -459,9 +448,7 @@
             </div>
         </section>
 
-        <!-- ===================================================================== -->
-        <!-- التبويب 5: لوحة المدير (PIN: 1960 / ١٩٦٠) -->
-        <!-- ===================================================================== -->
+        <!-- التبويب 5: لوحة المدير -->
         <section id="view-admin" class="tab-view hidden space-y-4">
             <div id="admin-lock-screen" class="max-w-md mx-auto bg-white p-6 sm:p-8 rounded-3xl shadow-md border border-slate-200 text-center my-6">
                 <div class="w-16 h-16 rounded-2xl bg-crimson-100 text-crimson-700 flex items-center justify-center text-2xl mx-auto mb-4">
@@ -521,20 +508,18 @@
                     </div>
                 </div>
 
-                <!-- شريط ملخص الحالة والحفظ المحلي -->
                 <div class="bg-white border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                     <div class="flex items-center gap-2 font-extrabold text-slate-800">
                         <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            <i class="fa-solid fa-check-circle ml-1"></i>حالة النظام
+                            <i class="fa-solid fa-cloud-check ml-1"></i>حالة المزامنة
                         </span>
                         <span id="applied-changes-summary" class="text-slate-600 font-bold">
-                            حفظ تلقائي محلي (localStorage) • 136 مادة نشطة
+                            مزامنة سحابية (Firebase Firestore) + حفظ محلي
                         </span>
                     </div>
                     <span id="last-backup-time" class="text-[11px] font-bold text-slate-400"></span>
                 </div>
 
-                <!-- تبويبات فرعية داخل لوحة المدير -->
                 <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
                     <button type="button" onclick="switchAdminSubTab('stock')" id="admin-sub-btn-stock" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer">
                         1. تعديل أول المدة / المتبقي
@@ -548,7 +533,6 @@
                     </button>
                 </div>
 
-                <!-- القسم الفرعي 1: جدول تعديل أول المدة / المتبقي -->
                 <div id="admin-sub-stock" class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
                     <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div class="flex flex-col sm:flex-row gap-2 flex-1">
@@ -582,7 +566,6 @@
                     </div>
                 </div>
 
-                <!-- القسم الفرعي 2: تعديل أو تصفير (0) الحركات الخاطئة -->
                 <div id="admin-sub-logs" class="hidden bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
                     <div class="p-3 bg-amber-50 border-b border-amber-200">
                         <p class="text-xs text-amber-900 font-bold">
@@ -607,7 +590,6 @@
                     </div>
                 </div>
 
-                <!-- القسم الفرعي 3: سلة المحذوفات -->
                 <div id="admin-sub-trash" class="hidden bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
                     <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
                         <p class="text-xs text-slate-700 font-bold">
@@ -637,9 +619,7 @@
 
     </main>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 1: إدخال كمية السحب أو الإضافة + التأكيد الفوري -->
-    <!-- ===================================================================== -->
     <div id="transaction-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
             <div id="tx-modal-header" class="p-4 text-white flex items-center justify-between bg-crimson-700">
@@ -753,9 +733,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 2: تعديل «أول المدة» / مطابقة الجرد الفعلي -->
-    <!-- ===================================================================== -->
     <div id="item-audit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
@@ -785,17 +763,16 @@
                 </div>
 
                 <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs font-extrabold">
-                    <span class="text-slate-700">المتبقي المحسوب (أول المدة + الإضافة - المصروف):</span>
+                    <span class="text-slate-700">المتبقي الحالي:</span>
                     <span id="audit-current-stock" class="text-emerald-800 text-sm">0</span>
                 </div>
 
-                <!-- قسم ضبط «أول المدة» مباشرة وإعادة حساب المصروف والمتبقي -->
                 <div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 space-y-2">
                     <label class="block text-xs font-extrabold text-amber-950">
                         تعيين / تعديل «أول المدة» للمادة:
                     </label>
                     <p class="text-[11px] text-amber-800 font-bold">
-                        مثال: إذا كان أول المدة 20 وسحبت 10 -> المصروف = 10 والمتبقي = 10.
+                        مثال: إذا كان أول المدة 20 وسحبت 10 -> المصروف = 10 والمتبقي = 10. تعديل أول المدة يغيّر المتبقي بنفس الفرق فقط.
                     </p>
                     <div class="flex gap-2">
                         <input type="text" inputmode="decimal" id="audit-opening-input" placeholder="أول المدة..."
@@ -807,7 +784,6 @@
                     </div>
                 </div>
 
-                <!-- حقل مطابقة الجرد الفعلي باليد -->
                 <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
                     <div class="flex items-center justify-between">
                         <label class="block text-xs font-extrabold text-slate-800">
@@ -821,7 +797,7 @@
                         <input type="text" inputmode="decimal" id="audit-physical-input" placeholder="المتبقي الفعلي..."
                             class="flex-1 px-3 py-2 bg-white border-2 border-slate-300 rounded-xl text-sm font-extrabold text-center focus:outline-none focus:border-crimson-600">
                         <div id="audit-pin-wrapper">
-                            <input type="text" id="audit-pin-input" maxlength="6" inputmode="numeric" placeholder="الرمز 1960"
+                            <input type="text" id="audit-pin-input" maxlength="6" inputmode="numeric" placeholder="رمز المدير"
                                 style="-webkit-text-security: disc;"
                                 class="w-28 px-2.5 py-2 bg-white border-2 border-slate-300 rounded-xl text-xs font-extrabold text-center focus:outline-none focus:border-crimson-600">
                         </div>
@@ -835,9 +811,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- النافذة المنبثقة 3: تعديل حركة خاطئة (تقبل الصفر 0 والأرقام العربية) -->
-    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 3: تعديل حركة خاطئة -->
     <div id="edit-log-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
@@ -859,9 +833,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 4: تأكيد حذف مادة قبل التنفيذ -->
-    <!-- ===================================================================== -->
     <div id="delete-confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
@@ -892,9 +864,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 5: إضافة مادة جديدة -->
-    <!-- ===================================================================== -->
     <div id="add-item-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
@@ -944,9 +914,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 6: تغيير الرمز السري للمدير -->
-    <!-- ===================================================================== -->
     <div id="change-pin-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
@@ -967,9 +935,7 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
     <!-- النافذة المنبثقة 7: معاينة قابلة للطباعة -->
-    <!-- ===================================================================== -->
     <div id="print-preview-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
@@ -1002,14 +968,37 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- منطق التطبيق الكامل + الحفظ المحلي + التحقق الذاتي للحسابات -->
+    <!-- منطق التطبيق الكامل + المزامنة السحابية عبر Firebase Firestore -->
     <!-- ===================================================================== -->
-    <script>
-        const LOCAL_BACKUP_KEY = 'cafe_warehouse_clean_v2';
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            setDoc,
+            onSnapshot
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const LOCAL_BACKUP_KEY = 'cafe_warehouse_cloud_cache_v1';
+        const CLOUD_DOC_PATH = ['warehouse_state', 'main_store'];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAeLExYbkJ616KzIYlBklpZaR9hdKxkrYc",
+            authDomain: "cafe-warehouse-app.firebaseapp.com",
+            projectId: "cafe-warehouse-app",
+            storageBucket: "cafe-warehouse-app.firebasestorage.app",
+            messagingSenderId: "1025391145485",
+            appId: "1:1025391145485:web:959df0ecd9691bacfc1b44",
+            measurementId: "G-KZM4K438EX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storeDocRef = doc(db, CLOUD_DOC_PATH[0], CLOUD_DOC_PATH[1]);
 
         // قائمة الـ 136 مادة الأصلية الكاملة عبر 7 أقسام
         const INITIAL_136_ITEMS = [
-            // القسم 1: خلطات وبن ومواد أولية (41 مادة)
             { id: "item_001", name: "خليط المحلى", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_002", name: "خليط ايس جكليت - فل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_003", name: "خليط ايس كوفي", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
@@ -1052,7 +1041,6 @@
             { id: "item_040", name: "صوص كراميل", category: "خلطات وبن ومواد أولية", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_041", name: "فلتر كمكس", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
 
-            // القسم 2: قهوة معبأة (علب 225غ) (17 مادة)
             { id: "item_042", name: "قهوة بالبندق 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
             { id: "item_043", name: "قهوة فرنسية 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
             { id: "item_044", name: "قهوة بالجكليت 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
@@ -1071,7 +1059,6 @@
             { id: "item_057", name: "قهوة اسبريسو 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
             { id: "item_058", name: "قهوة نعناع 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
 
-            // القسم 3: مكسرات ومستلزمات كاشير (7 مواد)
             { id: "item_059", name: "مكسرات", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
             { id: "item_060", name: "مكسرات حجم كبير", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
             { id: "item_061", name: "ماربل بالتمر", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
@@ -1080,14 +1067,12 @@
             { id: "item_064", name: "سلفون حراري كبس", category: "مكسرات ومستلزمات كاشير", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
             { id: "item_065", name: "ورق رول ايصال حراري", category: "مكسرات ومستلزمات كاشير", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
 
-            // القسم 4: سموذي (5 مواد)
             { id: "item_066", name: "سموذي منكا", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_067", name: "سموذي فرولة", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_068", name: "سموذي ريد بريس(فواكه حمراء)", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_069", name: "سموذي رمان", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_070", name: "سموذي توت ازرق", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
 
-            // القسم 5: سيروبات ومنكهات (19 مادة)
             { id: "item_071", name: "سيروب كراميل", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_072", name: "سيروب بندق", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_073", name: "سيروب كوكيز", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
@@ -1108,7 +1093,6 @@
             { id: "item_088", name: "بخاخ كريب زيتي", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_089", name: "طلقات مسدس كريمة", category: "سيروبات ومنكهات", unit: "قطعة", openingBalance: 0, stock: 0 },
 
-            // القسم 6: شوكولاتة وألبان ومواد كريب (22 مادة)
             { id: "item_090", name: "سطل شوكولا ابيض بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_091", name: "سطل شوكولا بالبندق بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_092", name: "سطل شوكولا دارك بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
@@ -1132,7 +1116,6 @@
             { id: "item_110", name: "تايكربطل", category: "شوكولاتة وألبان ومواد كريب", unit: "بطل", openingBalance: 0, stock: 0 },
             { id: "item_111", name: "طحين صفر داس", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
 
-            // القسم 7: تغليف وسفري وأكواب (25 مادة)
             { id: "item_112", name: "حراكة خشبية", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
             { id: "item_113", name: "حمالة ثنائية مطبوعة", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
             { id: "item_114", name: "حمالة رباعية مطبوعة", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
@@ -1156,13 +1139,19 @@
             { id: "item_132", name: "منيو عام-عربي", category: "تغليف وسفري وأكواب", unit: "قطعة", openingBalance: 0, stock: 0 },
             { id: "item_133", name: "كيس تعبئة 1/4 كيلو بدون فالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_134", name: "كيس تعبئة كيلو بدون فالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
-            { id: "item_135", name: "كيس تعبئة 1/2 كيلو بدون بالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_135", name: "كيس تعبئة 1/2 كيلو بدون فالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_136", name: "كيس كرواسون ورقي-كيلو الجديد", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 }
         ];
 
-        // =====================================================================
-        // دوال مساعدة للأرقام والتنسيق والتنبيهات
-        // =====================================================================
+        function escapeHtml(value) {
+            return String(value === null || value === undefined ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function normalizeDigits(str) {
             if (str === null || str === undefined) return '';
             const arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -1212,6 +1201,24 @@
             return `${year}-${month}-${day}`;
         }
 
+        function csvCell(value) {
+            return `"${String(value === null || value === undefined ? '' : value).replace(/"/g, '""')}"`;
+        }
+
+        function setSyncStatus(mode, text) {
+            const label = document.getElementById('sync-label');
+            const dot = document.getElementById('sync-dot');
+            if (!label || !dot) return;
+            label.textContent = text;
+            if (mode === 'live') {
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+            } else if (mode === 'warn') {
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+            } else {
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-crimson-300';
+            }
+        }
+
         function showToast(message, type = 'success', undoItemId = null) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -1247,57 +1254,54 @@
             }, duration);
         }
 
-        // =====================================================================
-        // حالة التطبيق والحفظ المحلي الموثوق
-        // =====================================================================
-        function loadInitialState() {
-            const defaultItems = INITIAL_136_ITEMS.map((item, idx) => ({
-                ...item,
-                openingBalance: roundQty(item.openingBalance || 0),
-                stock: roundQty(item.stock || 0),
-                deleted: false,
-                orderIndex: idx + 1
-            }));
-
-            try {
-                const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
-                        const normalizedItems = parsed.items.map((it, idx) => ({
-                            ...it,
-                            openingBalance: roundQty(it.openingBalance !== undefined ? it.openingBalance : (it.stock || 0)),
-                            stock: roundQty(it.stock !== undefined ? it.stock : 0),
-                            deleted: Boolean(it.deleted),
-                            orderIndex: it.orderIndex || (idx + 1)
-                        }));
-                        return {
-                            items: normalizedItems,
-                            logs: Array.isArray(parsed.logs) ? parsed.logs : [],
-                            adminPin: normalizeDigits(parsed.adminPin || "1960"),
-                            updatedAt: parsed.updatedAt || Date.now()
-                        };
-                    }
-                }
-            } catch (e) {
-                console.warn("Storage fallback:", e);
-            }
-
+        function buildDefaultState() {
             return {
-                items: defaultItems,
+                items: INITIAL_136_ITEMS.map((item, idx) => ({
+                    ...item,
+                    openingBalance: roundQty(item.openingBalance || 0),
+                    stock: roundQty(item.stock || 0),
+                    deleted: false,
+                    orderIndex: idx + 1
+                })),
                 logs: [],
                 adminPin: "1960",
                 updatedAt: Date.now()
             };
         }
 
-        let memoryState = loadInitialState();
+        function normalizeStateObject(raw) {
+            const base = buildDefaultState();
+            if (!raw || !Array.isArray(raw.items) || raw.items.length === 0) return base;
+            return {
+                items: raw.items.map((it, idx) => ({
+                    ...it,
+                    openingBalance: roundQty(it.openingBalance !== undefined ? it.openingBalance : (it.stock || 0)),
+                    stock: roundQty(it.stock !== undefined ? it.stock : 0),
+                    deleted: Boolean(it.deleted),
+                    orderIndex: it.orderIndex || (idx + 1)
+                })),
+                logs: Array.isArray(raw.logs) ? raw.logs.slice(0, 600) : [],
+                adminPin: normalizeDigits(raw.adminPin || "1960"),
+                updatedAt: Number(raw.updatedAt) || Date.now()
+            };
+        }
+
+        function loadLocalCache() {
+            try {
+                const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
+                if (raw) return normalizeStateObject(JSON.parse(raw));
+            } catch (_) {}
+            return buildDefaultState();
+        }
+
+        let memoryState = loadLocalCache();
         let allItemsRaw = [];
         let itemsList = [];
         let deletedItemsList = [];
         let logsList = [];
         let adminPin = normalizeDigits(memoryState.adminPin || "1960");
-        let isAdminUnlocked = sessionStorage.getItem('cafe_admin_unlocked') === 'true';
+        let isAdminUnlocked = false;
+        try { isAdminUnlocked = sessionStorage.getItem('cafe_admin_unlocked') === 'true'; } catch (_) {}
         let selectedCategory = "all";
         let analyticsRange = "week";
         let reportSortMode = "consumption_desc";
@@ -1308,25 +1312,79 @@
         let auditingItemId = null;
         let pendingDeleteItem = null;
         let computedReportRows = [];
+        let isSavingToCloud = false;
 
-        function persistLocalState() {
+        function persistLocalCache() {
             try {
-                memoryState.updatedAt = Date.now();
                 localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
                     items: memoryState.items,
-                    logs: memoryState.logs,
+                    logs: memoryState.logs.slice(0, 600),
                     adminPin: memoryState.adminPin,
-                    updatedAt: memoryState.updatedAt
+                    updatedAt: memoryState.updatedAt || Date.now()
                 }));
                 const backupEl = document.getElementById('last-backup-time');
                 if (backupEl) {
-                    backupEl.textContent = `آخر حفظ: ${formatDateTimeArabic(memoryState.updatedAt)}`;
+                    backupEl.textContent = `آخر تحديث: ${formatDateTimeArabic(memoryState.updatedAt || Date.now())}`;
                 }
             } catch (_) {}
         }
 
-        // حساب حالة المادة الموحدة:
-        // المتبقي = أول المدة + الإضافة - المصروف
+        async function saveAndSyncState() {
+            memoryState.updatedAt = Date.now();
+            memoryState.logs = (memoryState.logs || []).slice(0, 600);
+            persistLocalCache();
+            applyInMemorySnapshot();
+
+            isSavingToCloud = true;
+            setSyncStatus('warn', 'جاري الحفظ بالسحابة...');
+            try {
+                await setDoc(storeDocRef, {
+                    items: memoryState.items,
+                    logs: memoryState.logs,
+                    adminPin: memoryState.adminPin,
+                    updatedAt: memoryState.updatedAt
+                });
+                setSyncStatus('live', 'مزامنة سحابية لحظية');
+            } catch (err) {
+                console.error("Firestore save error:", err);
+                setSyncStatus('error', 'محلي (تعذر الاتصال بالسحابة)');
+                showToast("تم الحفظ محلياً، تأكد من تفعيل Firestore وقواعده في Firebase", "warning");
+            } finally {
+                setTimeout(() => { isSavingToCloud = false; }, 250);
+            }
+        }
+
+        async function initCloudSync() {
+            try {
+                const snap = await getDoc(storeDocRef);
+                if (!snap.exists()) {
+                    const localSeed = loadLocalCache();
+                    await setDoc(storeDocRef, localSeed);
+                }
+            } catch (err) {
+                console.warn("Initial Firestore check:", err);
+                setSyncStatus('error', 'تحقق من تفعيل Firestore');
+            }
+
+            onSnapshot(
+                storeDocRef,
+                (snap) => {
+                    if (!snap.exists()) return;
+                    const cloudData = normalizeStateObject(snap.data());
+                    const localTs = Number(memoryState.updatedAt) || 0;
+                    if (isSavingToCloud && cloudData.updatedAt < localTs) return;
+
+                    memoryState = cloudData;
+                    applyInMemorySnapshot();
+                    setSyncStatus('live', 'مزامنة سحابية لحظية');
+                },
+                (err) => {
+                    console.error("Firestore listener error:", err);
+                    setSyncStatus('error', 'خطأ في مزامنة السحابة');
+                }
+            );
+        }
+
         function computeItemSummary(item, logs = logsList) {
             const itemLogs = logs.filter(l => l.itemId === item.id);
             let totalAdded = 0;
@@ -1341,7 +1399,6 @@
 
             const openingBalance = roundQty(item.openingBalance !== undefined ? item.openingBalance : item.stock);
             const remaining = roundQty(item.stock !== undefined ? item.stock : (openingBalance + totalAdded - totalWithdrawn));
-            // المصروف يساوي مجموع السحوبات، وإذا وُجد فرق بين (أول المدة + الإضافة) والمتبقي الفعلي بعد جرد/تعديل ينعكس بدقة
             const expectedFromMovements = roundQty(openingBalance + totalAdded - totalWithdrawn);
             const hasManualAdjust = itemLogs.some(l => l.type === 'admin_adjust' || l.type === 'opening_set');
             const spent = hasManualAdjust
@@ -1357,23 +1414,6 @@
             };
         }
 
-        // فحص ذاتي عند بدء التشغيل للتأكد من سلامة الأرقام والمعادلات والـ 136 مادة
-        function runSelfCheck() {
-            try {
-                const activeCount = memoryState.items.filter(i => !i.deleted).length;
-                const sampleOpening = 20;
-                const sampleAdded = 0;
-                const sampleWithdrawn = 10;
-                const sampleRemaining = roundQty(sampleOpening + sampleAdded - sampleWithdrawn);
-                const ok = activeCount >= 136 && sampleRemaining === 10 && parseCleanNumber('٢٠') === 20;
-                if (!ok) {
-                    console.warn("Self-check warning:", { activeCount, sampleRemaining });
-                }
-            } catch (err) {
-                console.error("Self-check failed:", err);
-            }
-        }
-
         function applyInMemorySnapshot() {
             allItemsRaw = memoryState.items.map(i => ({ ...i }));
             allItemsRaw.sort((a, b) => (a.orderIndex || 999) - (b.orderIndex || 999));
@@ -1383,7 +1423,7 @@
             logsList = [...memoryState.logs].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             adminPin = normalizeDigits(memoryState.adminPin || "1960");
 
-            persistLocalState();
+            persistLocalCache();
 
             document.getElementById('deleted-count-badge').textContent = deletedItemsList.length;
             document.getElementById('total-items-count').textContent = itemsList.length;
@@ -1424,9 +1464,6 @@
             } catch (_) {}
         }
 
-        // =====================================================================
-        // التنقل والأقسام والبحث
-        // =====================================================================
         function switchTab(tabName) {
             document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${tabName}`).classList.remove('hidden');
@@ -1462,8 +1499,8 @@
                 const count = itemsList.filter(i => i.category === cat).length;
                 const isActive = selectedCategory === cat;
                 pillsHtml += `
-                    <button type="button" onclick="filterByCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${isActive ? 'bg-crimson-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                        ${cat} (${count})
+                    <button type="button" data-cat="${escapeHtml(cat)}" onclick="filterByCategory(this.dataset.cat)" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${isActive ? 'bg-crimson-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        ${escapeHtml(cat)} (${count})
                     </button>
                 `;
             });
@@ -1476,7 +1513,7 @@
 
             let optionsHtml = `<option value="all">جميع الأقسام (${itemsList.length})</option>`;
             categories.forEach(cat => {
-                optionsHtml += `<option value="${cat}">${cat}</option>`;
+                optionsHtml += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
             });
 
             reportCatSelect.innerHTML = optionsHtml;
@@ -1496,9 +1533,6 @@
             renderInventoryGrid();
         }
 
-        // =====================================================================
-        // عرض بطاقات المخزن والسحب/الإضافة
-        // =====================================================================
         function renderInventoryGrid() {
             const queryText = document.getElementById('search-items-input').value.trim().toLowerCase();
             const clearBtn = document.getElementById('clear-search-btn');
@@ -1512,7 +1546,7 @@
                 const matchesSearch = item.name.toLowerCase().includes(queryText) || item.category.toLowerCase().includes(queryText);
                 if (!matchesSearch) return false;
                 if (selectedCategory === 'all') return true;
-                if (selectedCategory === 'zero') return (Number(item.stock) || 0) <= 0;
+                if (selectedCategory === 'zero') return (Number(i.stock) || 0) <= 0;
                 return item.category === selectedCategory;
             });
 
@@ -1551,10 +1585,10 @@
                     <div class="bg-white rounded-2xl p-3.5 shadow-xs border ${cardBorder} flex flex-col justify-between hover:shadow-md transition-all">
                         <div>
                             <div class="flex items-start justify-between gap-2 mb-1">
-                                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[70%]">${item.category}</span>
+                                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[70%]">${escapeHtml(item.category)}</span>
                                 ${statusBadge}
                             </div>
-                            <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-2">${item.name}</h3>
+                            <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-2">${escapeHtml(item.name)}</h3>
                         </div>
 
                         <div class="space-y-2.5 pt-2 border-t border-slate-100">
@@ -1567,7 +1601,7 @@
                                 <span class="text-xs font-bold text-slate-500">المتبقي:</span>
                                 <div>
                                     <span class="text-xl font-extrabold ${isZero ? 'text-crimson-700' : 'text-emerald-800'}">${formatNumber(stock)}</span>
-                                    <span class="text-xs font-bold text-slate-500 mr-1">${item.unit}</span>
+                                    <span class="text-xs font-bold text-slate-500 mr-1">${escapeHtml(item.unit)}</span>
                                 </div>
                             </div>
 
@@ -1589,9 +1623,6 @@
             }).join('');
         }
 
-        // =====================================================================
-        // نافذة السحب والإضافة + التأكيد الفوري
-        // =====================================================================
         function openTransactionModal(itemId, type) {
             const staffName = document.getElementById('staff-name-input').value.trim();
             if (!staffName) {
@@ -1710,7 +1741,7 @@
             document.getElementById('tx-step-input').classList.remove('hidden');
         }
 
-        function executeConfirmedTransaction() {
+        async function executeConfirmedTransaction() {
             const item = itemsList.find(i => i.id === activeTx.itemId);
             if (!item) return;
 
@@ -1748,16 +1779,12 @@
             };
 
             memoryState.logs.unshift(logPayload);
-            applyInMemorySnapshot();
-
             closeTransactionModal();
             const actionWord = activeTx.type === 'withdraw' ? 'سحب' : 'إضافة';
-            showToast(`تم ${actionWord} ${formatNumber(qty)} ${item.unit} • المتبقي الآن: ${formatNumber(newStock)}`, 'success');
+            showToast(`تم ${actionWord} ${formatNumber(qty)} ${escapeHtml(item.unit)} • المتبقي الآن: ${formatNumber(newStock)}`, 'success');
+            await saveAndSyncState();
         }
 
-        // =====================================================================
-        // الجرد الأسبوعي وحساب: المتبقي = أول المدة + الإضافة - المصروف
-        // =====================================================================
         function updateQuickRangeButtonsUi() {
             ['today', 'week', 'month'].forEach(r => {
                 const btn = document.getElementById(`quick-range-${r}`);
@@ -1784,7 +1811,7 @@
             if (rangeType === 'today') {
                 startInput.value = today;
             } else if (rangeType === 'week') {
-                startInput.value = getTodayDateString(-7);
+                startInput.value = getTodayDateString(-6);
             } else if (rangeType === 'month') {
                 const d = new Date();
                 startInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -1837,29 +1864,26 @@
                         const ts = log.timestamp || 0;
                         const q = roundQty(log.qty || 0);
                         if (q < 0) return;
+                        const delta = (Number(log.afterStock) || 0) - (Number(log.beforeStock) || 0);
 
                         if (ts > endTs) {
                             if (log.type === 'add') afterEndDelta = roundQty(afterEndDelta + q);
                             else if (log.type === 'withdraw') afterEndDelta = roundQty(afterEndDelta - q);
-                            else if (log.type === 'admin_adjust') {
-                                afterEndDelta = roundQty(afterEndDelta + ((Number(log.afterStock) || 0) - (Number(log.beforeStock) || 0)));
-                            }
+                            else if (log.type === 'admin_adjust' || log.type === 'opening_set') afterEndDelta = roundQty(afterEndDelta + delta);
                         } else if (ts >= startTs && ts <= endTs) {
                             if (log.type === 'add') periodAdded = roundQty(periodAdded + q);
                             else if (log.type === 'withdraw') periodWithdrawn = roundQty(periodWithdrawn + q);
-                            else if (log.type === 'admin_adjust') {
-                                periodAdjustDelta = roundQty(periodAdjustDelta + ((Number(log.afterStock) || 0) - (Number(log.beforeStock) || 0)));
-                            }
+                            else if (log.type === 'admin_adjust') periodAdjustDelta = roundQty(periodAdjustDelta + delta);
                         }
                     });
 
                     const closingStock = roundQty(currentStock - afterEndDelta);
-                    const rawOpening = roundQty(item.openingBalance !== undefined ? item.openingBalance : (closingStock - periodAdded + periodWithdrawn - periodAdjustDelta));
-                    const openingStock = Math.max(0, rawOpening);
+                    const openingStock = Math.max(0, roundQty(closingStock - periodAdded + periodWithdrawn - periodAdjustDelta));
+
                     const netConsumed = periodAdjustDelta !== 0
                         ? Math.max(0, roundQty(openingStock + periodAdded - closingStock))
-                        : (periodWithdrawn > 0 ? periodWithdrawn : Math.max(0, roundQty(openingStock + periodAdded - closingStock)));
-                    const remainingDisplay = currentStock;
+                        : periodWithdrawn;
+                    const remainingDisplay = closingStock;
                     const isBelowConsumption = netConsumed > 0 && remainingDisplay < netConsumed;
 
                     return {
@@ -1909,12 +1933,12 @@
                 const rowHighlight = r.isBelowConsumption ? 'bg-amber-50/45' : '';
                 const coverageTag = r.isBelowConsumption
                     ? `<span class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">المتبقي أقل من الصرف</span>`
-                    : `<span class="text-slate-400">${r.item.unit}</span>`;
+                    : `<span class="text-slate-400">${escapeHtml(r.item.unit)}</span>`;
 
                 return `
                 <tr onclick="openItemAuditModal('${r.item.id}')" class="${rowHighlight} hover:bg-crimson-50/40 active:bg-crimson-50 cursor-pointer transition">
                     <td class="py-2.5 px-1.5 sm:px-3">
-                        <div class="font-extrabold text-slate-900 text-[11px] sm:text-sm leading-snug break-words">${r.item.name}</div>
+                        <div class="font-extrabold text-slate-900 text-[11px] sm:text-sm leading-snug break-words">${escapeHtml(r.item.name)}</div>
                         <div class="text-[9px] sm:text-[10px] font-bold mt-0.5">${coverageTag}</div>
                     </td>
                     <td class="py-2.5 px-0.5 sm:px-2 text-center bg-slate-50/80">
@@ -1940,9 +1964,6 @@
             }).join('');
         }
 
-        // =====================================================================
-        // نافذة تعديل أول المدة ومطابقة الجرد الفعلي
-        // =====================================================================
         function openItemAuditModal(itemId) {
             const row = computedReportRows.find(r => r.item.id === itemId);
             if (!row) return;
@@ -1953,22 +1974,21 @@
             document.getElementById('audit-opening-val').textContent = `${formatNumber(row.openingStock)}`;
             document.getElementById('audit-added-val').textContent = `+${formatNumber(row.periodAdded)}`;
             document.getElementById('audit-logged-withdraw').textContent = `${formatNumber(row.netConsumed)}`;
-            document.getElementById('audit-current-stock').textContent = `${formatNumber(row.currentStock)} ${row.item.unit}`;
+            document.getElementById('audit-current-stock').textContent = `${formatNumber(row.item.stock)} ${row.item.unit}`;
 
             document.getElementById('audit-opening-input').value = row.openingStock;
-            document.getElementById('audit-physical-input').value = row.currentStock;
+            document.getElementById('audit-physical-input').value = roundQty(row.item.stock || 0);
 
             const pinWrapper = document.getElementById('audit-pin-wrapper');
             const statusBadge = document.getElementById('audit-admin-status-badge');
             if (isAdminUnlocked) {
                 pinWrapper.classList.add('hidden');
                 statusBadge.classList.remove('hidden');
-                document.getElementById('audit-pin-input').value = adminPin;
             } else {
                 pinWrapper.classList.remove('hidden');
                 statusBadge.classList.add('hidden');
-                document.getElementById('audit-pin-input').value = '';
             }
+            document.getElementById('audit-pin-input').value = '';
 
             const modal = document.getElementById('item-audit-modal');
             modal.classList.remove('hidden');
@@ -1985,17 +2005,16 @@
             if (isAdminUnlocked) return true;
             const enteredPin = normalizeDigits(document.getElementById('audit-pin-input').value);
             if (enteredPin !== adminPin) {
-                showToast("الرمز السري للمدير غير صحيح! (الرمز 1960 أو ١٩٦٠)", "error");
+                showToast("الرمز السري للمدير غير صحيح!", "error");
                 return false;
             }
             isAdminUnlocked = true;
-            sessionStorage.setItem('cafe_admin_unlocked', 'true');
+            try { sessionStorage.setItem('cafe_admin_unlocked', 'true'); } catch (_) {}
             syncAdminUiState();
             return true;
         }
 
-        // تحديث أول المدة وإعادة حساب المتبقي = أول المدة + الإضافة - المصروف
-        function applyOpeningFromAuditModal() {
+        async function applyOpeningFromAuditModal() {
             if (!auditingItemId) return;
             if (!checkAuditPinOrUnlock()) return;
 
@@ -2006,22 +2025,28 @@
             }
 
             const memItem = memoryState.items.find(m => m.id === auditingItemId);
-            if (!memItem) return;
+            const row = computedReportRows.find(r => r.item.id === auditingItemId);
+            if (!memItem || !row) return;
 
-            const oldOpening = roundQty(memItem.openingBalance || 0);
+            const displayedOpening = roundQty(row.openingStock);
             const cleanOpening = roundQty(newOpening);
-            const itemLogs = memoryState.logs.filter(l => l.itemId === memItem.id);
-            const totalAdded = itemLogs.filter(l => l.type === 'add').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
-            const totalWithdrawn = itemLogs.filter(l => l.type === 'withdraw').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
+            const shift = roundQty(cleanOpening - displayedOpening);
 
-            const recalculatedRemaining = Math.max(0, roundQty(cleanOpening + totalAdded - totalWithdrawn));
+            if (shift === 0) {
+                closeItemAuditModal();
+                showToast("أول المدة نفس القيمة الحالية", "info");
+                return;
+            }
+
             const oldRemaining = roundQty(memItem.stock || 0);
+            const newRemaining = Math.max(0, roundQty(oldRemaining + shift));
+            const oldBase = roundQty(memItem.openingBalance || 0);
 
-            memItem.openingBalance = cleanOpening;
-            memItem.stock = recalculatedRemaining;
+            memItem.openingBalance = Math.max(0, roundQty(oldBase + shift));
+            memItem.stock = newRemaining;
 
             const staffName = document.getElementById('staff-name-input').value.trim() || 'المدير';
-            const shift = document.getElementById('shift-select').value;
+            const shiftName = document.getElementById('shift-select').value;
             const now = Date.now();
 
             memoryState.logs.unshift({
@@ -2033,20 +2058,20 @@
                 type: 'opening_set',
                 qty: cleanOpening,
                 beforeStock: oldRemaining,
-                afterStock: recalculatedRemaining,
+                afterStock: newRemaining,
                 staffName,
-                shift,
-                note: `تعيين أول المدة من ${formatNumber(oldOpening)} إلى ${formatNumber(cleanOpening)}`,
+                shift: shiftName,
+                note: `تعيين أول المدة من ${formatNumber(displayedOpening)} إلى ${formatNumber(cleanOpening)}`,
                 timestamp: now,
                 dateStr: getTodayDateString(0)
             });
 
-            applyInMemorySnapshot();
             closeItemAuditModal();
-            showToast(`تم تحديث أول المدة إلى ${formatNumber(cleanOpening)} والمتبقي إلى ${formatNumber(recalculatedRemaining)}`, "success");
+            showToast(`تم تحديث أول المدة إلى ${formatNumber(cleanOpening)} والمتبقي إلى ${formatNumber(newRemaining)}`, "success");
+            await saveAndSyncState();
         }
 
-        function applyPhysicalAudit() {
+        async function applyPhysicalAudit() {
             if (!auditingItemId) return;
             if (!checkAuditPinOrUnlock()) return;
 
@@ -2089,9 +2114,9 @@
                 dateStr: getTodayDateString(0)
             });
 
-            applyInMemorySnapshot();
             closeItemAuditModal();
-            showToast(`تم اعتماد المتبقي الفعلي لـ (${memItem.name}) = ${formatNumber(cleanPhysical)}`, "success");
+            showToast(`تم اعتماد المتبقي الفعلي لـ (${escapeHtml(memItem.name)}) = ${formatNumber(cleanPhysical)}`, "success");
+            await saveAndSyncState();
         }
 
         function exportReportCSV() {
@@ -2104,11 +2129,19 @@
             }
 
             let csv = "\uFEFF";
-            csv += `"تقرير جرد المخزن من ${startDateStr} الى ${endDateStr}"\n`;
+            csv += `${csvCell(`تقرير جرد المخزن من ${startDateStr} الى ${endDateStr}`)}\n`;
             csv += `"اسم المادة","القسم","الوحدة","اول المدة","الاضافة (+)","المصروف (-)","المتبقي"\n`;
 
             computedReportRows.forEach(r => {
-                csv += `"${r.item.name}","${r.item.category}","${r.item.unit}","${formatNumber(r.openingStock)}","${formatNumber(r.periodAdded)}","${formatNumber(r.netConsumed)}","${formatNumber(r.currentStock)}"\n`;
+                csv += [
+                    csvCell(r.item.name),
+                    csvCell(r.item.category),
+                    csvCell(r.item.unit),
+                    csvCell(formatNumber(r.openingStock)),
+                    csvCell(formatNumber(r.periodAdded)),
+                    csvCell(formatNumber(r.netConsumed)),
+                    csvCell(formatNumber(r.currentStock))
+                ].join(',') + "\n";
             });
 
             const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -2135,7 +2168,7 @@
             const previewBody = document.getElementById('print-preview-body');
             const rowsHtml = computedReportRows.map(r => `
                 <tr class="border-b border-slate-200">
-                    <td class="py-2 px-2 font-bold text-slate-900">${r.item.name} <span class="text-[10px] text-slate-500">(${r.item.unit})</span></td>
+                    <td class="py-2 px-2 font-bold text-slate-900">${escapeHtml(r.item.name)} <span class="text-[10px] text-slate-500">(${escapeHtml(r.item.unit)})</span></td>
                     <td class="py-2 px-2 text-center font-bold">${formatNumber(r.openingStock)}</td>
                     <td class="py-2 px-2 text-center font-bold text-blue-700">+${formatNumber(r.periodAdded)}</td>
                     <td class="py-2 px-2 text-center font-bold text-crimson-700">${formatNumber(r.netConsumed)}</td>
@@ -2168,6 +2201,7 @@
         }
 
         function runNativePrint() {
+            closePrintPreviewModal();
             try {
                 window.print();
             } catch (_) {
@@ -2206,9 +2240,6 @@
             document.body.removeChild(ta);
         }
 
-        // =====================================================================
-        // التبويب 3: سجل الحركات
-        // =====================================================================
         function renderLogsTable() {
             const q = document.getElementById('logs-search-input').value.trim().toLowerCase();
             const typeFilter = document.getElementById('logs-type-filter').value;
@@ -2246,20 +2277,17 @@
                 return `
                     <tr class="hover:bg-slate-50">
                         <td class="p-2.5 text-[11px] text-slate-500 font-semibold whitespace-nowrap">${formatDateTimeArabic(log.timestamp)}</td>
-                        <td class="p-2.5 font-extrabold text-slate-900 text-xs">${log.staffName || '-'} <span class="text-[10px] text-slate-400">(${log.shift || ''})</span></td>
-                        <td class="p-2.5 font-extrabold text-slate-900">${log.itemName}</td>
+                        <td class="p-2.5 font-extrabold text-slate-900 text-xs">${escapeHtml(log.staffName || '-')} <span class="text-[10px] text-slate-400">(${escapeHtml(log.shift || '')})</span></td>
+                        <td class="p-2.5 font-extrabold text-slate-900">${escapeHtml(log.itemName)}</td>
                         <td class="p-2.5 text-center">${badge}</td>
                         <td class="p-2.5 text-center">${qtyDisplay}</td>
                         <td class="p-2.5 text-center font-extrabold text-slate-800">${formatNumber(log.afterStock)}</td>
-                        <td class="p-2.5 text-[11px] text-slate-500">${log.note || '-'}</td>
+                        <td class="p-2.5 text-[11px] text-slate-500">${escapeHtml(log.note || '-')}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // =====================================================================
-        // التبويب 4: التحليلات والنواقص
-        // =====================================================================
         function setAnalyticsRange(range) {
             analyticsRange = range;
             ['today', 'week', 'month'].forEach(r => {
@@ -2279,9 +2307,9 @@
             if (analyticsRange === 'today') {
                 startTs = new Date(`${getTodayDateString(0)}T00:00:00`).getTime();
             } else if (analyticsRange === 'week') {
-                startTs = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                startTs = new Date(`${getTodayDateString(-6)}T00:00:00`).getTime();
             } else {
-                startTs = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                startTs = new Date(`${getTodayDateString(-29)}T00:00:00`).getTime();
             }
 
             const periodLogs = logsList.filter(l => (l.timestamp || 0) >= startTs);
@@ -2297,6 +2325,7 @@
             document.getElementById('stat-total-add-qty').textContent = `مجموع الكميات: ${formatNumber(totalAddQty)}`;
             document.getElementById('stat-zero-items').textContent = zeroItems.length;
             document.getElementById('stat-available-items').textContent = availableItems.length;
+            document.getElementById('stat-total-items-of').textContent = itemsList.length;
 
             const morningWithdraws = withdrawLogs.filter(l => l.shift === 'صباحي');
             const eveningWithdraws = withdrawLogs.filter(l => l.shift === 'مسائي');
@@ -2338,8 +2367,8 @@
                     return `
                         <div class="space-y-1">
                             <div class="flex justify-between text-xs font-extrabold">
-                                <span class="text-slate-800">${idx + 1}. ${entry.item.name}</span>
-                                <span class="text-crimson-700">${formatNumber(entry.total)} ${entry.item.unit}</span>
+                                <span class="text-slate-800">${idx + 1}. ${escapeHtml(entry.item.name)}</span>
+                                <span class="text-crimson-700">${formatNumber(entry.total)} ${escapeHtml(entry.item.unit)}</span>
                             </div>
                             <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <div class="h-full bg-crimson-600 rounded-full" style="width: ${pct}%"></div>
@@ -2350,9 +2379,6 @@
             }
         }
 
-        // =====================================================================
-        // التبويب 5: لوحة المدير (PIN: 1960 / ١٩٦٠)
-        // =====================================================================
         function syncAdminUiState() {
             if (isAdminUnlocked) {
                 document.getElementById('admin-lock-screen').classList.add('hidden');
@@ -2372,7 +2398,7 @@
             const entered = normalizeDigits(document.getElementById('admin-pin-input').value);
             if (entered === adminPin) {
                 isAdminUnlocked = true;
-                sessionStorage.setItem('cafe_admin_unlocked', 'true');
+                try { sessionStorage.setItem('cafe_admin_unlocked', 'true'); } catch (_) {}
                 document.getElementById('pin-error-msg').classList.add('hidden');
                 document.getElementById('admin-pin-input').value = '';
                 syncAdminUiState();
@@ -2384,7 +2410,7 @@
 
         function lockAdminPanel() {
             isAdminUnlocked = false;
-            sessionStorage.removeItem('cafe_admin_unlocked');
+            try { sessionStorage.removeItem('cafe_admin_unlocked'); } catch (_) {}
             syncAdminUiState();
             showToast("تم قفل لوحة المدير", "info");
         }
@@ -2425,8 +2451,8 @@
                 return `
                 <tr class="hover:bg-slate-50" data-item-id="${item.id}">
                     <td class="p-2.5">
-                        <div class="font-extrabold text-slate-900">${item.name}</div>
-                        <div class="text-[10px] text-slate-400">${item.unit}</div>
+                        <div class="font-extrabold text-slate-900">${escapeHtml(item.name)}</div>
+                        <div class="text-[10px] text-slate-400">${escapeHtml(item.unit)}</div>
                     </td>
                     <td class="p-2.5 text-center font-extrabold text-slate-700">${formatNumber(s.openingBalance)}</td>
                     <td class="p-2.5 text-center font-extrabold text-emerald-700">${formatNumber(s.remaining)}</td>
@@ -2445,7 +2471,7 @@
             }).join('');
         }
 
-        function saveBulkStockChanges() {
+        async function saveBulkStockChanges() {
             if (!isAdminUnlocked) return;
 
             const rows = document.querySelectorAll('#admin-stock-tbody tr');
@@ -2466,11 +2492,9 @@
                     const memItem = memoryState.items.find(m => m.id === itemId);
                     if (memItem) {
                         const cleanOpening = roundQty(newOpening);
-                        const itemLogs = memoryState.logs.filter(l => l.itemId === memItem.id);
-                        const totalAdded = itemLogs.filter(l => l.type === 'add').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
-                        const totalWithdrawn = itemLogs.filter(l => l.type === 'withdraw').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
-                        const newRemaining = Math.max(0, roundQty(cleanOpening + totalAdded - totalWithdrawn));
+                        const shiftDelta = roundQty(cleanOpening - origOpening);
                         const oldRemaining = roundQty(memItem.stock || 0);
+                        const newRemaining = Math.max(0, roundQty(oldRemaining + shiftDelta));
 
                         memItem.openingBalance = cleanOpening;
                         memItem.stock = newRemaining;
@@ -2501,8 +2525,8 @@
                 return;
             }
 
-            applyInMemorySnapshot();
             showToast(`تم حفظ وتحديث أول المدة والمتبقي لـ ${changedCount} مادة!`, "success");
+            await saveAndSyncState();
         }
 
         function renderAdminLogsTable() {
@@ -2517,8 +2541,8 @@
             tbody.innerHTML = recentLogs.map(log => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-2.5 text-[11px] text-slate-500">${formatDateTimeArabic(log.timestamp)}</td>
-                    <td class="p-2.5 font-bold text-xs">${log.staffName}</td>
-                    <td class="p-2.5 font-extrabold text-slate-900">${log.itemName}</td>
+                    <td class="p-2.5 font-bold text-xs">${escapeHtml(log.staffName)}</td>
+                    <td class="p-2.5 font-extrabold text-slate-900">${escapeHtml(log.itemName)}</td>
                     <td class="p-2.5 text-center">
                         ${log.type === 'withdraw'
                             ? '<span class="text-[10px] font-extrabold text-crimson-800 bg-crimson-100 px-2 py-0.5 rounded-md">سحب (-)</span>'
@@ -2554,9 +2578,10 @@
             m.classList.remove('flex');
         }
 
-        function confirmEditLog() {
+        async function confirmEditLog() {
             if (!isAdminUnlocked || !editingLogId) return;
             const log = logsList.find(l => l.id === editingLogId);
+            if (!log) return;
             const item = allItemsRaw.find(i => i.id === log.itemId);
             const newQty = parseCleanNumber(document.getElementById('edit-log-qty-input').value);
 
@@ -2586,14 +2611,11 @@
                 memLog.note = updatedNote;
             }
 
-            applyInMemorySnapshot();
             closeEditLogModal();
             showToast(`تم تعديل الكمية إلى ${formatNumber(cleanNewQty)} وتصحيح المتبقي تلقائياً`, "success");
+            await saveAndSyncState();
         }
 
-        // =====================================================================
-        // الحذف والاسترجاع والنسخ الاحتياطي JSON واستعادة الـ 136 مادة
-        // =====================================================================
         function openDeleteConfirmModal(itemId) {
             if (!isAdminUnlocked) return;
             const item = itemsList.find(i => i.id === itemId);
@@ -2613,7 +2635,7 @@
             m.classList.remove('flex');
         }
 
-        function executeConfirmedDelete() {
+        async function executeConfirmedDelete() {
             if (!isAdminUnlocked || !pendingDeleteItem) return;
             const itemToDelete = { ...pendingDeleteItem };
             closeDeleteConfirmModal();
@@ -2623,196 +2645,30 @@
                 memItem.deleted = true;
                 memItem.deletedAt = Date.now();
             }
-            applyInMemorySnapshot();
-            showToast(`تم حذف (${itemToDelete.name})`, "info", itemToDelete.id);
+            showToast(`تم حذف (${escapeHtml(itemToDelete.name)})`, "info", itemToDelete.id);
+            await saveAndSyncState();
         }
 
-        function restoreDeletedItem(itemId, btnElement = null) {
+        async function restoreDeletedItem(itemId, btnElement = null) {
             if (btnElement) {
                 btnElement.disabled = true;
                 btnElement.textContent = "جاري الاسترجاع...";
             }
             const memItem = memoryState.items.find(m => m.id === itemId);
             if (memItem) memItem.deleted = false;
-            applyInMemorySnapshot();
             showToast("تم استرجاع المادة إلى المخزن بنجاح!", "success");
+            await saveAndSyncState();
         }
 
-        function restoreAllDeletedItems() {
+        async function restoreAllDeletedItems() {
             if (!isAdminUnlocked || deletedItemsList.length === 0) return;
             const idsToRestore = deletedItemsList.map(i => i.id);
             memoryState.items.forEach(m => {
                 if (idsToRestore.includes(m.id)) m.deleted = false;
             });
-            applyInMemorySnapshot();
             showToast("تم استرجاع جميع المواد المحذوفة بنجاح!", "success");
+            await saveAndSyncState();
         }
 
-        function restoreAllMissing136Items(showNotification = false) {
-            INITIAL_136_ITEMS.forEach((item, idx) => {
-                const found = memoryState.items.find(m => m.id === item.id);
-                if (!found) {
-                    memoryState.items.push({
-                        ...item,
-                        openingBalance: roundQty(item.openingBalance || 0),
-                        stock: roundQty(item.stock || 0),
-                        deleted: false,
-                        orderIndex: idx + 1
-                    });
-                } else if (found.deleted === true) {
-                    found.deleted = false;
-                }
-            });
-            applyInMemorySnapshot();
-            if (showNotification) {
-                showToast("تم فحص واستعادة جميع المواد الـ 136 بنجاح!", "success");
-            }
-        }
-
-        function renderAdminTrashTable() {
-            const tbody = document.getElementById('admin-trash-tbody');
-            if (deletedItemsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-bold">سلة المحذوفات فارغة حالياً</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = deletedItemsList.map(item => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-2.5 font-extrabold text-slate-900">${item.name}</td>
-                    <td class="p-2.5 text-xs text-slate-500">${item.category}</td>
-                    <td class="p-2.5 text-center font-bold">${formatNumber(item.stock)} ${item.unit}</td>
-                    <td class="p-2.5 text-center">
-                        <button type="button" onclick="restoreDeletedItem('${item.id}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition cursor-pointer">
-                            <i class="fa-solid fa-rotate-left ml-1"></i>استرجاع
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function openAddNewItemModal() {
-            const m = document.getElementById('add-item-modal');
-            m.classList.remove('hidden');
-            m.classList.add('flex');
-        }
-
-        function closeAddNewItemModal() {
-            const m = document.getElementById('add-item-modal');
-            m.classList.add('hidden');
-            m.classList.remove('flex');
-        }
-
-        function submitNewItem() {
-            if (!isAdminUnlocked) return;
-            const name = document.getElementById('new-item-name').value.trim();
-            const category = document.getElementById('new-item-category').value;
-            const unit = document.getElementById('new-item-unit').value;
-            const openingVal = parseCleanNumber(document.getElementById('new-item-stock').value) || 0;
-
-            if (!name) {
-                showToast("اكتب اسم المادة أولاً", "warning");
-                return;
-            }
-
-            const cleanOpening = Math.max(0, roundQty(openingVal));
-            const newId = `item_${Date.now()}`;
-            memoryState.items.push({
-                id: newId,
-                name,
-                category,
-                unit,
-                openingBalance: cleanOpening,
-                stock: cleanOpening,
-                deleted: false,
-                orderIndex: allItemsRaw.length + 1
-            });
-
-            applyInMemorySnapshot();
-            document.getElementById('new-item-name').value = '';
-            document.getElementById('new-item-stock').value = '0';
-            closeAddNewItemModal();
-            showToast(`تمت إضافة (${name}) بنجاح!`, "success");
-        }
-
-        function openChangePinModal() {
-            const m = document.getElementById('change-pin-modal');
-            m.classList.remove('hidden');
-            m.classList.add('flex');
-        }
-
-        function closeChangePinModal() {
-            const m = document.getElementById('change-pin-modal');
-            m.classList.add('hidden');
-            m.classList.remove('flex');
-        }
-
-        function saveNewAdminPin() {
-            if (!isAdminUnlocked) return;
-            const newPin = normalizeDigits(document.getElementById('new-admin-pin-input').value);
-            if (newPin.length < 4) {
-                showToast("يجب أن يكون الرمز 4 أرقام على الأقل", "warning");
-                return;
-            }
-            memoryState.adminPin = newPin;
-            adminPin = newPin;
-            document.getElementById('new-admin-pin-input').value = '';
-            closeChangePinModal();
-            showToast("تم تغيير الرمز السري بنجاح!", "success");
-        }
-
-        function exportBackupJSON() {
-            const payload = {
-                app: "نظام إدارة المخزن والجرد الذكي",
-                exportedAt: new Date().toISOString(),
-                adminPin,
-                items: memoryState.items,
-                logs: memoryState.logs
-            };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `نسخة_احتياطية_المخزن_${getTodayDateString(0)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            showToast("تم تصدير النسخة الاحتياطية JSON بنجاح!", "success");
-        }
-
-        async function importBackupJSON(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
-
-            try {
-                const text = await file.text();
-                const parsed = JSON.parse(text);
-                if (!parsed || !Array.isArray(parsed.items) || parsed.items.length === 0) {
-                    showToast("ملف JSON غير صالح أو لا يحتوي على مواد", "error");
-                    return;
-                }
-                memoryState.items = parsed.items;
-                if (Array.isArray(parsed.logs)) memoryState.logs = parsed.logs;
-                if (parsed.adminPin) memoryState.adminPin = normalizeDigits(parsed.adminPin);
-                applyInMemorySnapshot();
-                showToast(`تم استيراد ${parsed.items.length} مادة بنجاح!`, "success");
-            } catch (err) {
-                console.error("JSON import error:", err);
-                showToast("تعذر قراءة ملف النسخة الاحتياطية JSON", "error");
-            } finally {
-                event.target.value = "";
-            }
-        }
-
-        // =====================================================================
-        // التشغيل عند تحميل الصفحة
-        // =====================================================================
-        window.addEventListener('DOMContentLoaded', () => {
-            runSelfCheck();
-            loadStaffPreferences();
-            setQuickDateRange('week');
-            applyInMemorySnapshot();
-            syncAdminUiState();
-        });
-    </script>
-</body>
-</html>
+        async function restoreAllMissing136Items(showNotification = false) {
+            INITIAL_136_ITEMS.
