@@ -1541,11 +1541,17 @@
         }
 
         function renderInventoryGrid() {
-            const rawQuery = document.getElementById('search-items-input').value.trim();
-            const normalizedQuery = normalizeArabicSearch(rawQuery);
+            const searchInput = document.getElementById('search-items-input');
             const clearBtn = document.getElementById('clear-search-btn');
-            if (rawQuery) clearBtn.classList.remove('hidden');
-            else clearBtn.classList.add('hidden');
+            const grid = document.getElementById('inventory-grid');
+            if (!searchInput || !grid) return;
+
+            const rawQuery = searchInput.value.trim();
+            const normalizedQuery = normalizeArabicSearch(rawQuery);
+
+            if (clearBtn) {
+                clearBtn.classList.toggle('hidden', !rawQuery);
+            }
 
             const searchSynonyms = {
                 'كوب': ['كلاص', 'سلاش'],
@@ -1559,7 +1565,8 @@
 
             const queryTokens = normalizedQuery ? normalizedQuery.split(' ').filter(Boolean) : [];
             const zeroStockItems = itemsList.filter(i => (Number(i.stock) || 0) <= 0);
-            document.getElementById('zero-stock-badge').textContent = zeroStockItems.length;
+            const zeroBadge = document.getElementById('zero-stock-badge');
+            if (zeroBadge) zeroBadge.textContent = zeroStockItems.length;
 
             const filtered = itemsList
                 .filter(item => {
@@ -1574,7 +1581,7 @@
                         });
                     }
                     if (selectedCategory === 'all') return true;
-                    if (selectedCategory === 'zero') return (Number(i.stock) || 0) <= 0;
+                    if (selectedCategory === 'zero') return (Number(item.stock) || 0) <= 0;
                     return item.category === selectedCategory;
                 })
                 .sort((a, b) => {
@@ -1590,77 +1597,79 @@
                     return (a.orderIndex || 999) - (b.orderIndex || 999);
                 });
 
-            document.getElementById('displayed-items-count').textContent = filtered.length;
+            const displayedCountEl = document.getElementById('displayed-items-count');
+            if (displayedCountEl) displayedCountEl.textContent = filtered.length;
 
-            const grid = document.getElementById('inventory-grid');
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full bg-white p-10 rounded-2xl text-center border border-slate-200">
-                        <i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3"></i>
-                        <p class="text-slate-600 font-bold">لا توجد مواد مطابقة لبحثك</p>
-                    </div>
-                `;
-                return;
-            }
-
-            grid.innerHTML = filtered.map(item => {
-                const summary = computeItemSummary(item);
-                const stock = summary.remaining;
-                const isZero = stock <= 0;
-                const isLowCoverage = summary.spent > 0 && stock < summary.spent;
-
-                let statusBadge = '';
-                let cardBorder = 'border-slate-200/90';
-                if (isZero) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-crimson-100 text-crimson-800">نافد</span>`;
-                    cardBorder = 'border-crimson-300 bg-crimson-50/20';
-                } else if (isLowCoverage) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">المتبقي أقل من الصرف</span>`;
-                    cardBorder = 'border-amber-300/90';
-                } else {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700">متوفر</span>`;
+            requestAnimationFrame(() => {
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full bg-white p-10 rounded-2xl text-center border border-slate-200">
+                            <i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3"></i>
+                            <p class="text-slate-600 font-bold">لا توجد مواد مطابقة لبحثك</p>
+                        </div>
+                    `;
+                    return;
                 }
 
-                return `
-                    <div class="bg-white rounded-2xl p-3.5 shadow-xs border ${cardBorder} flex flex-col justify-between hover:shadow-md transition-all">
-                        <div>
-                            <div class="flex items-start justify-between gap-2 mb-1">
-                                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[70%]">${escapeHtml(item.category)}</span>
-                                ${statusBadge}
-                            </div>
-                            <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-2">${escapeHtml(item.name)}</h3>
-                        </div>
+                grid.innerHTML = filtered.map(item => {
+                    const summary = computeItemSummary(item);
+                    const stock = summary.remaining;
+                    const isZero = stock <= 0;
+                    const isLowCoverage = summary.spent > 0 && stock < summary.spent;
 
-                        <div class="space-y-2.5 pt-2 border-t border-slate-100">
-                            <div class="flex items-center justify-between text-[11px] font-bold text-slate-500">
-                                <span>أول المدة: <strong class="text-slate-800">${formatNumber(summary.openingBalance)}</strong></span>
-                                <span>المصروف: <strong class="text-crimson-700">${formatNumber(summary.spent)}</strong></span>
+                    let statusBadge = '';
+                    let cardBorder = 'border-slate-200/90';
+                    if (isZero) {
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-crimson-100 text-crimson-800">نافد</span>`;
+                        cardBorder = 'border-crimson-300 bg-crimson-50/20';
+                    } else if (isLowCoverage) {
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">المتبقي أقل من الصرف</span>`;
+                        cardBorder = 'border-amber-300/90';
+                    } else {
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700">متوفر</span>`;
+                    }
+
+                    return `
+                        <div class="bg-white rounded-2xl p-3.5 shadow-xs border ${cardBorder} flex flex-col justify-between hover:shadow-md transition-all">
+                            <div>
+                                <div class="flex items-start justify-between gap-2 mb-1">
+                                    <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[70%]">${escapeHtml(item.category)}</span>
+                                    ${statusBadge}
+                                </div>
+                                <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-2">${escapeHtml(item.name)}</h3>
                             </div>
 
-                            <div class="flex items-baseline justify-between">
-                                <span class="text-xs font-bold text-slate-500">المتبقي:</span>
-                                <div>
-                                    <span class="text-xl font-extrabold ${isZero ? 'text-crimson-700' : 'text-emerald-800'}">${formatNumber(stock)}</span>
-                                    <span class="text-xs font-bold text-slate-500 mr-1">${escapeHtml(item.unit)}</span>
+                            <div class="space-y-2.5 pt-2 border-t border-slate-100">
+                                <div class="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                                    <span>أول المدة: <strong class="text-slate-800">${formatNumber(summary.openingBalance)}</strong></span>
+                                    <span>المصروف: <strong class="text-crimson-700">${formatNumber(summary.spent)}</strong></span>
+                                </div>
+
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-xs font-bold text-slate-500">المتبقي:</span>
+                                    <div>
+                                        <span class="text-xl font-extrabold ${isZero ? 'text-crimson-700' : 'text-emerald-800'}">${formatNumber(stock)}</span>
+                                        <span class="text-xs font-bold text-slate-500 mr-1">${escapeHtml(item.unit)}</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" onclick="openTransactionModal('${item.id}', 'withdraw')"
+                                        class="py-2.5 px-3 bg-crimson-700 hover:bg-crimson-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
+                                        <i class="fa-solid fa-minus"></i>
+                                        <span>سحب (-)</span>
+                                    </button>
+                                    <button type="button" onclick="openTransactionModal('${item.id}', 'add')"
+                                        class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>إضافة (+)</span>
+                                    </button>
                                 </div>
                             </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <button type="button" onclick="openTransactionModal('${item.id}', 'withdraw')"
-                                    class="py-2.5 px-3 bg-crimson-700 hover:bg-crimson-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
-                                    <i class="fa-solid fa-minus"></i>
-                                    <span>سحب (-)</span>
-                                </button>
-                                <button type="button" onclick="openTransactionModal('${item.id}', 'add')"
-                                    class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
-                                    <i class="fa-solid fa-plus"></i>
-                                    <span>إضافة (+)</span>
-                                </button>
-                            </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+            });
         }
 
         function openTransactionModal(itemId, type) {
