@@ -966,11 +966,7 @@
             </div>
         </div>
     </div>
-
-    <!-- ===================================================================== -->
-    <!-- منطق التطبيق الكامل + المزامنة السحابية عبر Firebase Firestore -->
-    <!-- ===================================================================== -->
-    <script type="module">
+        <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import {
             getFirestore,
@@ -997,7 +993,6 @@
         const db = getFirestore(app);
         const storeDocRef = doc(db, CLOUD_DOC_PATH[0], CLOUD_DOC_PATH[1]);
 
-        // قائمة الـ 136 مادة الأصلية الكاملة عبر 7 أقسام
         const INITIAL_136_ITEMS = [
             { id: "item_001", name: "خليط المحلى", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
             { id: "item_002", name: "خليط ايس جكليت - فل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
@@ -1161,6 +1156,18 @@
                 .replace(/[٠-٩]/g, d => arabicNums.indexOf(d))
                 .replace(/[۰-۹]/g, d => persianNums.indexOf(d))
                 .replace(/[٫،]/g, '.');
+        }
+
+        function normalizeArabicSearch(text) {
+            return String(text || '')
+                .toLowerCase()
+                .replace(/[أإآا]/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ى/g, 'ي')
+                .replace(/ؤ/g, 'و')
+                .replace(/ئ/g, 'ي')
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
         function parseCleanNumber(rawVal) {
@@ -1533,18 +1540,6 @@
             renderInventoryGrid();
         }
 
-            function normalizeArabicSearch(text) {
-            return String(text || '')
-                .toLowerCase()
-                .replace(/[أإآا]/g, 'ا')
-                .replace(/ة/g, 'ه')
-                .replace(/ى/g, 'ي')
-                .replace(/ؤ/g, 'و')
-                .replace(/ئ/g, 'ي')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
         function renderInventoryGrid() {
             const rawQuery = document.getElementById('search-items-input').value.trim();
             const normalizedQuery = normalizeArabicSearch(rawQuery);
@@ -1563,7 +1558,6 @@
             };
 
             const queryTokens = normalizedQuery ? normalizedQuery.split(' ').filter(Boolean) : [];
-
             const zeroStockItems = itemsList.filter(i => (Number(i.stock) || 0) <= 0);
             document.getElementById('zero-stock-badge').textContent = zeroStockItems.length;
 
@@ -1575,32 +1569,24 @@
 
                     if (queryTokens.length > 0) {
                         return queryTokens.every(token => {
-                            const expandedTokens = [
-                                token,
-                                ...(searchSynonyms[token] || []).map(s => normalizeArabicSearch(s))
-                            ];
-                            return expandedTokens.some(t => combinedText.includes(t));
+                            const expanded = [token, ...(searchSynonyms[token] || []).map(s => normalizeArabicSearch(s))];
+                            return expanded.some(t => combinedText.includes(t));
                         });
                     }
-
                     if (selectedCategory === 'all') return true;
                     if (selectedCategory === 'zero') return (Number(i.stock) || 0) <= 0;
                     return item.category === selectedCategory;
                 })
                 .sort((a, b) => {
                     if (!normalizedQuery) return (a.orderIndex || 999) - (b.orderIndex || 999);
-
-                    const aNormName = normalizeArabicSearch(a.name);
-                    const bNormName = normalizeArabicSearch(b.name);
-
-                    const aStarts = aNormName.startsWith(normalizedQuery) ? 0 : 1;
-                    const bStarts = bNormName.startsWith(normalizedQuery) ? 0 : 1;
+                    const aName = normalizeArabicSearch(a.name);
+                    const bName = normalizeArabicSearch(b.name);
+                    const aStarts = aName.startsWith(normalizedQuery) ? 0 : 1;
+                    const bStarts = bName.startsWith(normalizedQuery) ? 0 : 1;
                     if (aStarts !== bStarts) return aStarts - bStarts;
-
-                    const aInName = aNormName.includes(normalizedQuery) ? 0 : 1;
-                    const bInName = bNormName.includes(normalizedQuery) ? 0 : 1;
-                    if (aInName !== bInName) return aInName - bInName;
-
+                    const aIn = aName.includes(normalizedQuery) ? 0 : 1;
+                    const bIn = bName.includes(normalizedQuery) ? 0 : 1;
+                    if (aIn !== bIn) return aIn - bIn;
                     return (a.orderIndex || 999) - (b.orderIndex || 999);
                 });
 
@@ -1676,7 +1662,6 @@
                 `;
             }).join('');
         }
-
 
         function openTransactionModal(itemId, type) {
             const staffName = document.getElementById('staff-name-input').value.trim();
@@ -2726,14 +2711,6 @@
         }
 
         async function restoreAllMissing136Items(showNotification = false) {
-            INITIAL_136_ITEMS.
-                                map(base => ({
-                    ...base,
-                    openingBalance: roundQty(base.openingBalance || 0),
-                    stock: roundQty(base.stock || 0),
-                    deleted: false
-                }));
-
             let addedCount = 0;
             INITIAL_136_ITEMS.forEach((base, idx) => {
                 const existing = memoryState.items.find(m => m.id === base.id || m.name.trim() === base.name.trim());
@@ -2918,7 +2895,6 @@
             reader.readAsText(file);
         }
 
-        // ربط الدوال المستدعاة من عناصر HTML بالنافذة العامة
         Object.assign(window, {
             saveStaffPreferences,
             switchTab,
@@ -2967,7 +2943,6 @@
             importBackupJSON
         });
 
-        // التهيئة الأولية عند تحميل الصفحة
         loadStaffPreferences();
         setQuickDateRange('week');
         applyInMemorySnapshot();
