@@ -2672,3 +2672,252 @@
 
         async function restoreAllMissing136Items(showNotification = false) {
             INITIAL_136_ITEMS.
+                                map(base => ({
+                    ...base,
+                    openingBalance: roundQty(base.openingBalance || 0),
+                    stock: roundQty(base.stock || 0),
+                    deleted: false
+                }));
+
+            let addedCount = 0;
+            INITIAL_136_ITEMS.forEach((base, idx) => {
+                const existing = memoryState.items.find(m => m.id === base.id || m.name.trim() === base.name.trim());
+                if (!existing) {
+                    memoryState.items.push({
+                        ...base,
+                        openingBalance: roundQty(base.openingBalance || 0),
+                        stock: roundQty(base.stock || 0),
+                        deleted: false,
+                        orderIndex: base.orderIndex || (idx + 1)
+                    });
+                    addedCount++;
+                } else if (existing.deleted === true) {
+                    existing.deleted = false;
+                    addedCount++;
+                }
+            });
+
+            if (showNotification) {
+                if (addedCount > 0) {
+                    showToast(`تمت استعادة ${addedCount} مادة إلى المخزن!`, "success");
+                } else {
+                    showToast("جميع المواد الـ 136 موجودة ونشطة بالفعل.", "info");
+                }
+            }
+            await saveAndSyncState();
+        }
+
+        function renderAdminTrashTable() {
+            const tbody = document.getElementById('admin-trash-tbody');
+            if (!tbody) return;
+            if (deletedItemsList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 font-bold">سلة المحذوفات فارغة</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = deletedItemsList.map(item => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-2.5 font-extrabold text-slate-900">${escapeHtml(item.name)}</td>
+                    <td class="p-2.5 text-xs text-slate-500 font-bold">${escapeHtml(item.category)}</td>
+                    <td class="p-2.5 text-center font-extrabold text-slate-700">${formatNumber(item.stock)} ${escapeHtml(item.unit)}</td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="restoreDeletedItem('${item.id}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs cursor-pointer">
+                            استرجاع
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddNewItemModal() {
+            if (!isAdminUnlocked) return;
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-stock').value = '0';
+            const m = document.getElementById('add-item-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeAddNewItemModal() {
+            const m = document.getElementById('add-item-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        async function submitNewItem() {
+            if (!isAdminUnlocked) return;
+            const name = document.getElementById('new-item-name').value.trim();
+            const category = document.getElementById('new-item-category').value;
+            const unit = document.getElementById('new-item-unit').value;
+            const stockVal = parseCleanNumber(document.getElementById('new-item-stock').value);
+
+            if (!name) {
+                showToast("اكتب اسم المادة أولاً", "warning");
+                return;
+            }
+            const cleanStock = (!isNaN(stockVal) && stockVal >= 0) ? roundQty(stockVal) : 0;
+            const now = Date.now();
+            const newId = `item_custom_${now}`;
+
+            memoryState.items.push({
+                id: newId,
+                name,
+                category,
+                unit,
+                openingBalance: cleanStock,
+                stock: cleanStock,
+                deleted: false,
+                orderIndex: memoryState.items.length + 1
+            });
+
+            memoryState.logs.unshift({
+                id: `log_${now}_${Math.random().toString(36).slice(2, 6)}`,
+                itemId: newId,
+                itemName: name,
+                category,
+                unit,
+                type: 'opening_set',
+                qty: cleanStock,
+                beforeStock: 0,
+                afterStock: cleanStock,
+                staffName: document.getElementById('staff-name-input').value.trim() || 'المدير',
+                shift: document.getElementById('shift-select').value,
+                note: 'إضافة مادة جديدة للمخزن',
+                timestamp: now,
+                dateStr: getTodayDateString(0)
+            });
+
+            closeAddNewItemModal();
+            showToast(`تمت إضافة المادة (${escapeHtml(name)}) بنجاح!`, "success");
+            await saveAndSyncState();
+        }
+
+        function openChangePinModal() {
+            if (!isAdminUnlocked) return;
+            document.getElementById('new-admin-pin-input').value = '';
+            const m = document.getElementById('change-pin-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeChangePinModal() {
+            const m = document.getElementById('change-pin-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        async function saveNewAdminPin() {
+            if (!isAdminUnlocked) return;
+            const pin = normalizeDigits(document.getElementById('new-admin-pin-input').value);
+            if (!pin || pin.length < 4) {
+                showToast("أدخل رمزاً من 4 أرقام على الأقل", "warning");
+                return;
+            }
+            adminPin = pin;
+            memoryState.adminPin = pin;
+            closeChangePinModal();
+            showToast("تم تغيير رمز المدير بنجاح!", "success");
+            await saveAndSyncState();
+        }
+
+        function exportBackupJSON() {
+            if (!isAdminUnlocked) return;
+            const payload = JSON.stringify({
+                items: memoryState.items,
+                logs: memoryState.logs,
+                adminPin: memoryState.adminPin,
+                exportedAt: new Date().toISOString()
+            }, null, 2);
+            const blob = new Blob([payload], { type: "application/json;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `نسخة_احتياطية_المخزن_${getTodayDateString(0)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast("تم تصدير النسخة الاحتياطية JSON!", "success");
+        }
+
+        function importBackupJSON(event) {
+            if (!isAdminUnlocked) return;
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed || !Array.isArray(parsed.items)) {
+                        showToast("ملف JSON غير صالح", "error");
+                        return;
+                    }
+                    memoryState = normalizeStateObject(parsed);
+                    showToast("تم استيراد النسخة الاحتياطية ومزامنتها مع السحابة!", "success");
+                    await saveAndSyncState();
+                } catch (_) {
+                    showToast("تعذر قراءة ملف JSON", "error");
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ربط الدوال المستدعاة من عناصر HTML بالنافذة العامة
+        Object.assign(window, {
+            saveStaffPreferences,
+            switchTab,
+            filterByCategory,
+            clearSearch,
+            openTransactionModal,
+            closeTransactionModal,
+            setQuickQty,
+            updateTxPreview,
+            proceedToConfirmation,
+            backToTxInput,
+            executeConfirmedTransaction,
+            handleManualDateChange,
+            setQuickDateRange,
+            setReportSort,
+            openItemAuditModal,
+            closeItemAuditModal,
+            applyOpeningFromAuditModal,
+            applyPhysicalAudit,
+            exportReportCSV,
+            triggerPrintReport,
+            runNativePrint,
+            closePrintPreviewModal,
+            copyReportSummaryText,
+            setAnalyticsRange,
+            verifyAdminPin,
+            lockAdminPanel,
+            switchAdminSubTab,
+            saveBulkStockChanges,
+            openEditLogModal,
+            closeEditLogModal,
+            confirmEditLog,
+            openDeleteConfirmModal,
+            closeDeleteConfirmModal,
+            executeConfirmedDelete,
+            restoreDeletedItem,
+            restoreAllDeletedItems,
+            restoreAllMissing136Items,
+            openAddNewItemModal,
+            closeAddNewItemModal,
+            submitNewItem,
+            openChangePinModal,
+            closeChangePinModal,
+            saveNewAdminPin,
+            exportBackupJSON,
+            importBackupJSON
+        });
+
+        // التهيئة الأولية عند تحميل الصفحة
+        loadStaffPreferences();
+        setQuickDateRange('week');
+        applyInMemorySnapshot();
+        initCloudSync();
+    </script>
+</body>
+</html>
+
