@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المخزن والجرد الذكي</title>
+    <!-- تحميل Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- تحميل خط Tajawal و Cairo العربي -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- أيقونات Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Tajawal', 'Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        crimson: {
+                            950: '#450a0a',
+                            900: '#7f1d1d',
+                            800: '#991b1b',
+                            700: '#b91c1c',
+                            600: '#dc2626',
+                            500: '#ef4444',
+                            100: '#fee2e2',
+                            50: '#fef2f2',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Tajawal', 'Cairo', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #991b1b;
+            border-radius: 9999px;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* إصلاح تمدد وتراكب حقول التاريخ في متصفح Safari على الآيفون */
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            display: block;
+            min-height: 44px;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-inventory, #printable-inventory * {
+                visibility: visible;
+            }
+            #printable-inventory {
+                position: absolute;
+                right: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- شريط التنبيهات العائم -->
+    <div id="toast-container" class="fixed top-4 left-4 right-4 sm:right-auto z-50 flex flex-col gap-2 max-w-md mx-auto sm:mx-0 pointer-events-none"></div>
+
+    <!-- الرأس العلوي -->
+    <header class="bg-gradient-to-l from-crimson-950 via-crimson-800 to-crimson-600 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+                <!-- الشعار والعنوان -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white text-lg shadow-inner">
+                            <i class="fa-solid fa-warehouse"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-base sm:text-xl font-extrabold tracking-tight flex items-center gap-2">
+                                <span>نظام إدارة المخزن والجرد الذكي</span>
+                                <span id="sync-indicator" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-200 border border-emerald-400/40">
+                                    <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span id="sync-label">حفظ محلي فوري</span>
+                                </span>
+                            </h1>
+                            <p class="text-[11px] text-crimson-100/85 hidden sm:block">المتبقي = أول المدة + الإضافة - المصروف • 136 مادة مكتملة</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بيانات الموظف والشفت الحالي -->
+                <div class="flex items-center gap-2 bg-crimson-950/55 p-1.5 rounded-2xl border border-white/15">
+                    <div class="flex items-center gap-1.5 flex-1">
+                        <i class="fa-solid fa-user-check text-crimson-200 text-xs mr-1.5"></i>
+                        <input type="text" id="staff-name-input" oninput="saveStaffPreferences()" placeholder="اكتب اسم الموظف..."
+                            class="bg-white/10 text-white placeholder-crimson-200/70 text-xs sm:text-sm rounded-xl px-2.5 py-1.5 border border-white/15 focus:outline-none focus:border-white w-full sm:w-40 font-bold">
+                    </div>
+                    <select id="shift-select" onchange="saveStaffPreferences()"
+                        class="bg-white/15 text-white text-xs sm:text-sm rounded-xl px-2.5 py-1.5 border border-white/15 focus:outline-none focus:border-white font-bold cursor-pointer">
+                        <option value="صباحي" class="text-slate-900">☀️ صباحي</option>
+                        <option value="مسائي" class="text-slate-900">🌙 مسائي</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- شريط التنقل الرئيسي (5 تبويبات) -->
+            <nav class="flex items-center gap-1.5 mt-2.5 overflow-x-auto no-scrollbar pb-0.5">
+                <button type="button" onclick="switchTab('inventory')" id="tab-btn-inventory"
+                    class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all bg-white text-crimson-800 shadow-md cursor-pointer">
+                    <i class="fa-solid fa-dolly"></i>
+                    <span>1. المخزن والسحب/الإضافة</span>
+                </button>
+                <button type="button" onclick="switchTab('report')" id="tab-btn-report"
+                    class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all text-white/95 hover:bg-white/15 cursor-pointer">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <span>2. الجرد الأسبوعي</span>
+                </button>
+                <button type="button" onclick="switchTab('logs')" id="tab-btn-logs"
+                    class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all text-white/95 hover:bg-white/15 cursor-pointer">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>3. سجل الحركات</span>
+                </button>
+                <button type="button" onclick="switchTab('analytics')" id="tab-btn-analytics"
+                    class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all text-white/95 hover:bg-white/15 cursor-pointer">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>4. التحليلات والنواقص</span>
+                </button>
+                <button type="button" onclick="switchTab('admin')" id="tab-btn-admin"
+                    class="tab-btn flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all text-amber-200 hover:bg-white/15 border border-amber-300/35 cursor-pointer">
+                    <i id="admin-lock-icon" class="fa-solid fa-lock"></i>
+                    <span>5. لوحة المدير</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-4">
+
+        <!-- ===================================================================== -->
+        <!-- التبويب 1: المخزن والسحب والإضافة اليومية -->
+        <!-- ===================================================================== -->
+        <section id="view-inventory" class="tab-view space-y-3.5">
+            <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80 space-y-2.5">
+                <div class="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-items-input" oninput="renderInventoryGrid()"
+                            placeholder="ابحث باسم المادة (بندق، سحلب، برازيلي، سيروب، كلاص...)"
+                            class="w-full pr-9 pl-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-crimson-600 focus:bg-white transition">
+                        <button type="button" onclick="clearSearch()" id="clear-search-btn" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 text-xs font-extrabold">
+                        <div class="bg-slate-100 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-1.5">
+                            <span>المعروض: <span id="displayed-items-count" class="text-slate-900">0</span> / <span id="total-items-count" class="text-crimson-700">136</span></span>
+                        </div>
+
+                        <button type="button" onclick="filterByCategory('zero')" class="bg-crimson-50 hover:bg-crimson-100 text-crimson-700 px-3 py-2 rounded-xl border border-crimson-200 flex items-center gap-1.5 transition cursor-pointer">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>نافد: <span id="zero-stock-badge">0</span></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- أزرار فلترة الأقسام -->
+                <div id="category-pills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5"></div>
+            </div>
+
+            <!-- شبكة بطاقات المواد -->
+            <div id="inventory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- التبويب 2: الجرد الأسبوعي (5 أعمدة: اسم المادة | أول المدة | الإضافة | المصروف | المتبقي) -->
+        <!-- ===================================================================== -->
+        <section id="view-report" class="tab-view hidden space-y-3.5">
+            <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80 space-y-3 no-print">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="w-full min-w-0">
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">من تاريخ:</label>
+                        <input type="date" id="report-start-date" onchange="handleManualDateChange()"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:outline-none focus:border-crimson-600">
+                    </div>
+                    <div class="w-full min-w-0">
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">إلى تاريخ:</label>
+                        <input type="date" id="report-end-date" onchange="handleManualDateChange()"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:outline-none focus:border-crimson-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="w-full min-w-0">
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">القسم:</label>
+                        <select id="report-category-filter" onchange="renderPeriodReport()"
+                            class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-extrabold text-slate-900 focus:outline-none focus:border-crimson-600">
+                            <option value="all">جميع الأقسام</option>
+                        </select>
+                    </div>
+                    <div class="w-full min-w-0">
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">تصفية العرض:</label>
+                        <select id="report-activity-filter" onchange="renderPeriodReport()"
+                            class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-extrabold text-slate-900 focus:outline-none focus:border-crimson-600">
+                            <option value="all">كل المواد</option>
+                            <option value="low_coverage">⚠️ المتبقي أقل من المصروف</option>
+                            <option value="active">المواد التي عليها حركة</option>
+                            <option value="withdrawn">المواد المصروفة فقط</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div class="flex items-center gap-2 text-xs font-extrabold text-slate-700">
+                        <i class="fa-solid fa-arrow-down-wide-short text-crimson-700"></i>
+                        <span>ترتيب الجدول:</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setReportSort('consumption_desc')" id="sort-btn-consumption_desc"
+                            class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs transition cursor-pointer">
+                            الأكثر صرفاً أولاً
+                        </button>
+                        <button type="button" onclick="setReportSort('default_order')" id="sort-btn-default_order"
+                            class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">
+                            ترتيب الأقسام
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setQuickDateRange('today')" id="quick-range-today"
+                            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-extrabold transition cursor-pointer">
+                            اليوم
+                        </button>
+                        <button type="button" onclick="setQuickDateRange('week')" id="quick-range-week"
+                            class="px-2.5 py-1.5 bg-crimson-700 text-white rounded-lg text-xs font-extrabold shadow-xs transition cursor-pointer">
+                            آخر 7 أيام
+                        </button>
+                        <button type="button" onclick="setQuickDateRange('month')" id="quick-range-month"
+                            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-extrabold transition cursor-pointer">
+                            هذا الشهر
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="exportReportCSV()"
+                            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold flex items-center gap-1 shadow-xs transition cursor-pointer">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>Excel</span>
+                        </button>
+                        <button type="button" onclick="triggerPrintReport()"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-extrabold flex items-center gap-1 shadow-xs transition cursor-pointer">
+                            <i class="fa-solid fa-print"></i>
+                            <span>طباعة</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="printable-inventory" class="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
+                <div class="p-3 bg-crimson-50/70 border-b border-crimson-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h2 class="text-sm sm:text-base font-extrabold text-crimson-950">تقرير الجرد الأسبوعي (المتبقي = أول المدة + الإضافة - المصروف)</h2>
+                            <span id="low-coverage-summary-badge" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                تنبيه: <span id="low-coverage-count">0</span> مادة متبقيها أقل من صرفها
+                            </span>
+                        </div>
+                        <p id="report-period-subtitle" class="text-[11px] text-slate-600 font-bold mt-0.5"></p>
+                    </div>
+                    <p class="text-[11px] text-crimson-700 font-bold no-print">
+                        <i class="fa-solid fa-hand-pointer ml-1"></i>اضغط على أي مادة لتعديل «أول المدة» أو مطابقة الجرد الفعلي
+                    </p>
+                </div>
+
+                <div class="w-full">
+                    <table class="w-full table-fixed text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 text-[10px] sm:text-xs font-extrabold border-b border-slate-200">
+                                <th class="py-2.5 px-1.5 sm:px-3 w-[34%]">اسم المادة</th>
+                                <th class="py-2.5 px-0.5 sm:px-2 text-center w-[16%] bg-slate-200/60 text-slate-800">أول المدة</th>
+                                <th class="py-2.5 px-0.5 sm:px-2 text-center w-[16%] bg-blue-50/90 text-blue-900">الإضافة (+)</th>
+                                <th class="py-2.5 px-0.5 sm:px-2 text-center w-[17%] bg-crimson-50/90 text-crimson-900">المصروف (-)</th>
+                                <th class="py-2.5 px-0.5 sm:px-2 text-center w-[17%] bg-emerald-50/90 text-emerald-900">المتبقي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="period-report-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- التبويب 3: سجل الحركات اليومي واللحظي -->
+        <!-- ===================================================================== -->
+        <section id="view-logs" class="tab-view hidden space-y-3.5">
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-crimson-700"></i>
+                            <span>سجل الحركات اللحظي (السحب والإضافة وأول المدة والجرد)</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-500 font-bold">مرتب زمنياً من الأحدث إلى الأقدم</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <input type="text" id="logs-search-input" oninput="renderLogsTable()" placeholder="بحث بالمادة أو الموظف..."
+                            class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-crimson-600 flex-1 sm:w-48">
+                        <select id="logs-type-filter" onchange="renderLogsTable()"
+                            class="px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-extrabold focus:outline-none focus:border-crimson-600">
+                            <option value="all">جميع الحركات</option>
+                            <option value="withdraw">سحب (-)</option>
+                            <option value="add">إضافة (+)</option>
+                            <option value="opening_set">أول المدة</option>
+                            <option value="admin_adjust">تعديل / جرد</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto max-h-[70vh]">
+                    <table class="w-full text-right border-collapse">
+                        <thead class="bg-slate-100 text-slate-700 text-[11px] font-extrabold border-b border-slate-200 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">الوقت</th>
+                                <th class="p-2.5">الموظف والشفت</th>
+                                <th class="p-2.5">المادة</th>
+                                <th class="p-2.5 text-center">العملية</th>
+                                <th class="p-2.5 text-center">الكمية</th>
+                                <th class="p-2.5 text-center">المتبقي بعد</th>
+                                <th class="p-2.5">ملاحظة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- التبويب 4: التحليلات الذكية والنواقص ومقارنة الشفتات -->
+        <!-- ===================================================================== -->
+        <section id="view-analytics" class="tab-view hidden space-y-4">
+            <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-crimson-700"></i>
+                    <span class="text-xs sm:text-sm font-extrabold text-slate-900">تحليلات الاستهلاك والنواقص للفترة:</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="setAnalyticsRange('today')" id="an-range-today" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">اليوم</button>
+                    <button type="button" onclick="setAnalyticsRange('week')" id="an-range-week" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer">آخر 7 أيام</button>
+                    <button type="button" onclick="setAnalyticsRange('month')" id="an-range-month" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">آخر 30 يوم</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-crimson-50 p-3.5 rounded-2xl border border-crimson-200 shadow-xs">
+                    <span class="text-[11px] font-bold text-crimson-800 block">إجمالي عمليات السحب (-)</span>
+                    <span id="stat-total-withdraw-ops" class="text-2xl font-extrabold text-crimson-900 mt-1 block">0</span>
+                    <span id="stat-total-withdraw-qty" class="text-[11px] font-bold text-crimson-700 mt-0.5 block">مجموع الكميات: 0</span>
+                </div>
+                <div class="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200 shadow-xs">
+                    <span class="text-[11px] font-bold text-emerald-800 block">إجمالي عمليات الإضافة (+)</span>
+                    <span id="stat-total-add-ops" class="text-2xl font-extrabold text-emerald-900 mt-1 block">0</span>
+                    <span id="stat-total-add-qty" class="text-[11px] font-bold text-emerald-700 mt-0.5 block">مجموع الكميات: 0</span>
+                </div>
+                <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 shadow-xs">
+                    <span class="text-[11px] font-bold text-amber-800 block">مواد متبقيها صفر (نافدة)</span>
+                    <span id="stat-zero-items" class="text-2xl font-extrabold text-amber-900 mt-1 block">0</span>
+                    <span class="text-[11px] font-bold text-amber-700 mt-0.5 block">من أصل 136 مادة</span>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                    <span class="text-[11px] font-bold text-slate-500 block">المواد المتوفرة حالياً</span>
+                    <span id="stat-available-items" class="text-2xl font-extrabold text-slate-900 mt-1 block">0</span>
+                    <span class="text-[11px] font-bold text-slate-500 mt-0.5 block">المتبقي أكبر من صفر</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="p-3.5 bg-crimson-800 text-white flex items-center justify-between">
+                        <h3 class="text-sm font-extrabold flex items-center gap-2">
+                            <i class="fa-solid fa-sun-plant-wilt"></i>
+                            <span>مقارنة استهلاك الشفت الصباحي والمسائي</span>
+                        </h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 text-center">
+                                <span class="text-xs font-extrabold text-amber-900 block">☀️ الشفت الصباحي</span>
+                                <span id="shift-morning-ops" class="text-2xl font-extrabold text-amber-700 mt-1 block">0</span>
+                                <span class="text-[11px] text-amber-800 font-bold">عملية سحب</span>
+                                <div class="mt-2 pt-2 border-t border-amber-200/70 text-xs font-extrabold text-slate-800">
+                                    الكمية: <span id="shift-morning-qty" class="text-amber-900">0</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-900 text-white rounded-2xl p-3.5 text-center">
+                                <span class="text-xs font-extrabold text-slate-200 block">🌙 الشفت المسائي</span>
+                                <span id="shift-evening-ops" class="text-2xl font-extrabold text-amber-400 mt-1 block">0</span>
+                                <span class="text-[11px] text-slate-300 font-bold">عملية سحب</span>
+                                <div class="mt-2 pt-2 border-t border-slate-700 text-xs font-extrabold text-slate-200">
+                                    الكمية: <span id="shift-evening-qty" class="text-amber-300">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs font-extrabold">
+                                <span class="text-amber-700">صباحي: <span id="shift-morning-pct">50%</span></span>
+                                <span class="text-slate-800">مسائي: <span id="shift-evening-pct">50%</span></span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
+                                <div id="shift-morning-bar" class="h-full bg-amber-500 transition-all duration-500" style="width: 50%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+                        <h3 class="text-sm font-extrabold flex items-center gap-2">
+                            <i class="fa-solid fa-fire text-amber-400"></i>
+                            <span>أكثر 15 مادة استهلاكاً خلال الفترة</span>
+                        </h3>
+                    </div>
+                    <div id="top-consumed-list" class="p-3.5 space-y-2.5 max-h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- التبويب 5: لوحة المدير (PIN: 1960 / ١٩٦٠) -->
+        <!-- ===================================================================== -->
+        <section id="view-admin" class="tab-view hidden space-y-4">
+            <div id="admin-lock-screen" class="max-w-md mx-auto bg-white p-6 sm:p-8 rounded-3xl shadow-md border border-slate-200 text-center my-6">
+                <div class="w-16 h-16 rounded-2xl bg-crimson-100 text-crimson-700 flex items-center justify-center text-2xl mx-auto mb-4">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-900 mb-5">لوحة المدير المحمية</h2>
+
+                <div class="flex justify-center mb-4">
+                    <input type="text" id="admin-pin-input" maxlength="6" inputmode="numeric" placeholder="••••"
+                        onkeyup="if(event.key==='Enter') verifyAdminPin()"
+                        style="-webkit-text-security: disc;"
+                        class="w-48 text-center text-2xl tracking-[0.4em] font-extrabold py-3 bg-slate-50 border-2 border-slate-300 rounded-2xl focus:outline-none focus:border-crimson-600">
+                </div>
+                <p id="pin-error-msg" class="text-xs text-crimson-600 font-bold mb-3 hidden">الرمز السري غير صحيح! حاول مرة أخرى.</p>
+
+                <button type="button" onclick="verifyAdminPin()"
+                    class="w-full py-3 bg-crimson-700 hover:bg-crimson-800 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer">
+                    دخول المدير
+                </button>
+            </div>
+
+            <div id="admin-dashboard-content" class="hidden space-y-4">
+                <div class="bg-crimson-50 border border-crimson-200 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-10 h-10 rounded-xl bg-crimson-700 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-user-shield"></i></span>
+                        <div>
+                            <h2 class="text-sm sm:text-base font-extrabold text-crimson-950">صلاحيات المدير مفعلة</h2>
+                            <p class="text-[11px] text-crimson-800">ضبط «أول المدة» أو تعديل المتبقي، تصفير (0) الحركات الخاطئة، أو استعادة المواد</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" onclick="restoreAllMissing136Items(true)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 transition shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>استعادة كل الـ 136 مادة</span>
+                        </button>
+                        <button type="button" onclick="exportBackupJSON()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 transition shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-download"></i>
+                            <span>نسخة JSON</span>
+                        </button>
+                        <label class="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 transition shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>استيراد JSON</span>
+                            <input type="file" id="import-json-input" accept="application/json,.json" onchange="importBackupJSON(event)" class="hidden">
+                        </label>
+                        <button type="button" onclick="openAddNewItemModal()" class="px-3 py-2 bg-crimson-700 hover:bg-crimson-800 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>مادة جديدة</span>
+                        </button>
+                        <button type="button" onclick="openChangePinModal()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-extrabold flex items-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-key"></i>
+                            <span>تغيير الرمز</span>
+                        </button>
+                        <button type="button" onclick="lockAdminPanel()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>قفل</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- شريط ملخص الحالة والحفظ المحلي -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2 font-extrabold text-slate-800">
+                        <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <i class="fa-solid fa-check-circle ml-1"></i>حالة النظام
+                        </span>
+                        <span id="applied-changes-summary" class="text-slate-600 font-bold">
+                            حفظ تلقائي محلي (localStorage) • 136 مادة نشطة
+                        </span>
+                    </div>
+                    <span id="last-backup-time" class="text-[11px] font-bold text-slate-400"></span>
+                </div>
+
+                <!-- تبويبات فرعية داخل لوحة المدير -->
+                <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+                    <button type="button" onclick="switchAdminSubTab('stock')" id="admin-sub-btn-stock" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer">
+                        1. تعديل أول المدة / المتبقي
+                    </button>
+                    <button type="button" onclick="switchAdminSubTab('logs')" id="admin-sub-btn-logs" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer">
+                        2. تعديل / تصفير (0) حركة
+                    </button>
+                    <button type="button" onclick="switchAdminSubTab('trash')" id="admin-sub-btn-trash" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-trash-arrow-up"></i>
+                        <span>3. سلة المحذوفات (<span id="deleted-count-badge">0</span>)</span>
+                    </button>
+                </div>
+
+                <!-- القسم الفرعي 1: جدول تعديل أول المدة / المتبقي -->
+                <div id="admin-sub-stock" class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div class="flex flex-col sm:flex-row gap-2 flex-1">
+                            <input type="text" id="admin-search-input" oninput="renderAdminStockTable()" placeholder="ابحث عن مادة..."
+                                class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm flex-1 focus:outline-none focus:border-crimson-600">
+                            <select id="admin-category-filter" onchange="renderAdminStockTable()"
+                                class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-extrabold focus:outline-none focus:border-crimson-600">
+                                <option value="all">جميع الأقسام</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="saveBulkStockChanges()" id="save-bulk-btn"
+                            class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition cursor-pointer">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>حفظ التعديلات</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-[65vh]">
+                        <table class="w-full text-right border-collapse">
+                            <thead class="sticky top-0 bg-slate-100 z-10 shadow-xs">
+                                <tr class="text-slate-700 text-[11px] sm:text-xs font-extrabold border-b border-slate-200">
+                                    <th class="p-2.5">المادة</th>
+                                    <th class="p-2.5 text-center">أول المدة</th>
+                                    <th class="p-2.5 text-center">المتبقي الحالي</th>
+                                    <th class="p-2.5 text-center w-32">ضبط أول المدة</th>
+                                    <th class="p-2.5 text-center w-16">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-stock-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- القسم الفرعي 2: تعديل أو تصفير (0) الحركات الخاطئة -->
+                <div id="admin-sub-logs" class="hidden bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="p-3 bg-amber-50 border-b border-amber-200">
+                        <p class="text-xs text-amber-900 font-bold">
+                            <i class="fa-solid fa-circle-info ml-1"></i>
+                            يمكنك تعديل أي كمية مضافة أو مسحوبة بالخطأ ووضع الرقم <strong>0</strong> (صفر) لإلغائها بالكامل، وسيتم تصحيح المصروف والمتبقي فوراً.
+                        </p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-[11px] sm:text-xs font-extrabold border-b border-slate-200">
+                                    <th class="p-2.5">الوقت</th>
+                                    <th class="p-2.5">الموظف</th>
+                                    <th class="p-2.5">المادة</th>
+                                    <th class="p-2.5 text-center">النوع</th>
+                                    <th class="p-2.5 text-center">الكمية</th>
+                                    <th class="p-2.5 text-center">تعديل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-logs-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- القسم الفرعي 3: سلة المحذوفات -->
+                <div id="admin-sub-trash" class="hidden bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+                        <p class="text-xs text-slate-700 font-bold">
+                            <i class="fa-solid fa-rotate-left ml-1 text-emerald-600"></i>
+                            جميع المواد المحذوفة محفوظة هنا ويمكنك استرجاعها بضغطة زر.
+                        </p>
+                        <button type="button" onclick="restoreAllDeletedItems()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs cursor-pointer">
+                            استرجاع كل المحذوفات
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-[11px] sm:text-xs font-extrabold border-b border-slate-200">
+                                    <th class="p-2.5">اسم المادة</th>
+                                    <th class="p-2.5">القسم</th>
+                                    <th class="p-2.5 text-center">المتبقي</th>
+                                    <th class="p-2.5 text-center">استرجاع</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-trash-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 1: إدخال كمية السحب أو الإضافة + التأكيد الفوري -->
+    <!-- ===================================================================== -->
+    <div id="transaction-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div id="tx-modal-header" class="p-4 text-white flex items-center justify-between bg-crimson-700">
+                <div class="flex items-center gap-2">
+                    <i id="tx-modal-icon" class="fa-solid fa-minus-circle text-lg"></i>
+                    <h3 id="tx-modal-title" class="font-extrabold text-base">تسجيل سحب من المخزن</h3>
+                </div>
+                <button type="button" onclick="closeTransactionModal()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="tx-step-input" class="p-5 space-y-4">
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <span class="text-[11px] font-bold text-slate-500 block" id="tx-item-category">القسم</span>
+                    <h4 id="tx-item-name" class="text-base font-extrabold text-slate-900 mt-0.5">اسم المادة</h4>
+                    <div class="mt-2 flex items-center justify-between text-xs font-bold">
+                        <span class="text-slate-600">المتبقي الحالي:</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-crimson-50 text-crimson-900 font-extrabold border border-crimson-200">
+                            <span id="tx-current-stock">0</span> <span id="tx-item-unit">كيلو</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-600 mb-1.5">اختر كمية سريعة أو اكتب يدوياً:</label>
+                    <div class="grid grid-cols-6 gap-1.5 mb-2.5">
+                        <button type="button" onclick="setQuickQty(2)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">2</button>
+                        <button type="button" onclick="setQuickQty(4)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">4</button>
+                        <button type="button" onclick="setQuickQty(6)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">6</button>
+                        <button type="button" onclick="setQuickQty(8)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">8</button>
+                        <button type="button" onclick="setQuickQty(10)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">10</button>
+                        <button type="button" onclick="setQuickQty(12)" class="py-2 bg-slate-100 hover:bg-crimson-50 hover:text-crimson-800 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 transition cursor-pointer">12</button>
+                    </div>
+                    <div class="relative">
+                        <input type="text" inputmode="decimal" id="tx-qty-input" placeholder="أدخل الكمية..."
+                            oninput="updateTxPreview()"
+                            class="w-full px-4 py-3 text-xl font-extrabold bg-white border-2 border-slate-300 rounded-2xl focus:outline-none focus:border-crimson-600 text-center">
+                        <span id="tx-input-unit-label" class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">كيلو</span>
+                    </div>
+                </div>
+
+                <div>
+                    <input type="text" id="tx-note-input" placeholder="ملاحظة اختيارية..."
+                        class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-crimson-600">
+                </div>
+
+                <div id="tx-error-box" class="hidden p-3 bg-crimson-50 border border-crimson-200 rounded-xl text-xs font-bold text-crimson-700 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-base"></i>
+                    <span id="tx-error-text"></span>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="proceedToConfirmation()"
+                        class="flex-1 py-3 bg-crimson-700 hover:bg-crimson-800 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer">
+                        متابعة للتأكيد
+                    </button>
+                    <button type="button" onclick="closeTransactionModal()"
+                        class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl transition cursor-pointer">
+                        إلغاء
+                    </button>
+                </div>
+            </div>
+
+            <div id="tx-step-confirm" class="hidden p-5 space-y-4">
+                <div class="text-center space-y-1">
+                    <div id="confirm-badge-icon" class="w-14 h-14 rounded-full bg-crimson-100 text-crimson-700 flex items-center justify-center text-2xl mx-auto mb-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h4 class="text-lg font-extrabold text-slate-900">تأكيد الكمية قبل الحفظ</h4>
+                    <p class="text-xs text-slate-500">تأكد من الرقم المدخل قبل اعتماد الحركة</p>
+                </div>
+
+                <div class="bg-slate-50 border-2 border-crimson-200 rounded-2xl p-4 space-y-2.5 text-sm">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span class="text-slate-600 font-bold">العملية:</span>
+                        <span id="confirm-type-text" class="font-extrabold text-crimson-700 px-2.5 py-0.5 rounded-lg bg-crimson-100">سحب (-)</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span class="text-slate-600 font-bold">المادة:</span>
+                        <span id="confirm-item-name" class="font-extrabold text-slate-900 text-left max-w-[65%]"></span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span class="text-slate-600 font-bold">الكمية:</span>
+                        <span id="confirm-qty-text" class="text-lg font-extrabold text-crimson-700"></span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span class="text-slate-600 font-bold">المتبقي (قبل ← بعد):</span>
+                        <span class="font-extrabold text-slate-800">
+                            <span id="confirm-before-stock"></span> ← <span id="confirm-after-stock" class="text-emerald-700 underline"></span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-600 font-bold">الموظف:</span>
+                        <span id="confirm-staff-info" class="font-extrabold text-slate-900"></span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="executeConfirmedTransaction()" id="confirm-submit-btn"
+                        class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer">
+                        <i class="fa-solid fa-check-double"></i>
+                        <span>تأكيد وحفظ</span>
+                    </button>
+                    <button type="button" onclick="backToTxInput()"
+                        class="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl transition cursor-pointer">
+                        رجوع
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 2: تعديل «أول المدة» / مطابقة الجرد الفعلي -->
+    <!-- ===================================================================== -->
+    <div id="item-audit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
+                <div>
+                    <span id="audit-item-cat" class="text-[10px] text-crimson-200 block font-bold">القسم</span>
+                    <h3 id="audit-item-name" class="font-extrabold text-base">اسم المادة</h3>
+                </div>
+                <button type="button" onclick="closeItemAuditModal()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                        <span class="text-[11px] font-bold text-slate-500 block">أول المدة</span>
+                        <span id="audit-opening-val" class="text-base font-extrabold text-slate-900">0</span>
+                    </div>
+                    <div class="bg-blue-50 p-2.5 rounded-2xl border border-blue-200">
+                        <span class="text-[11px] font-bold text-blue-700 block">الإضافة (+)</span>
+                        <span id="audit-added-val" class="text-base font-extrabold text-blue-900">0</span>
+                    </div>
+                    <div class="bg-crimson-50 p-2.5 rounded-2xl border border-crimson-200">
+                        <span class="text-[11px] font-bold text-crimson-700 block">المصروف (-)</span>
+                        <span id="audit-logged-withdraw" class="text-base font-extrabold text-crimson-900">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs font-extrabold">
+                    <span class="text-slate-700">المتبقي المحسوب (أول المدة + الإضافة - المصروف):</span>
+                    <span id="audit-current-stock" class="text-emerald-800 text-sm">0</span>
+                </div>
+
+                <!-- قسم ضبط «أول المدة» مباشرة وإعادة حساب المصروف والمتبقي -->
+                <div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 space-y-2">
+                    <label class="block text-xs font-extrabold text-amber-950">
+                        تعيين / تعديل «أول المدة» للمادة:
+                    </label>
+                    <p class="text-[11px] text-amber-800 font-bold">
+                        مثال: إذا كان أول المدة 20 وسحبت 10 -> المصروف = 10 والمتبقي = 10.
+                    </p>
+                    <div class="flex gap-2">
+                        <input type="text" inputmode="decimal" id="audit-opening-input" placeholder="أول المدة..."
+                            class="flex-1 px-3 py-2 bg-white border-2 border-amber-300 rounded-xl text-sm font-extrabold text-center focus:outline-none focus:border-crimson-600">
+                        <button type="button" onclick="applyOpeningFromAuditModal()"
+                            class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold rounded-xl transition cursor-pointer">
+                            تحديث أول المدة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- حقل مطابقة الجرد الفعلي باليد -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-extrabold text-slate-800">
+                            مطابقة الجرد الفعلي (المتبقي الفعلي):
+                        </label>
+                        <span id="audit-admin-status-badge" class="hidden text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            <i class="fa-solid fa-unlock ml-1"></i>صلاحية المدير مفعلة
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" inputmode="decimal" id="audit-physical-input" placeholder="المتبقي الفعلي..."
+                            class="flex-1 px-3 py-2 bg-white border-2 border-slate-300 rounded-xl text-sm font-extrabold text-center focus:outline-none focus:border-crimson-600">
+                        <div id="audit-pin-wrapper">
+                            <input type="text" id="audit-pin-input" maxlength="6" inputmode="numeric" placeholder="الرمز 1960"
+                                style="-webkit-text-security: disc;"
+                                class="w-28 px-2.5 py-2 bg-white border-2 border-slate-300 rounded-xl text-xs font-extrabold text-center focus:outline-none focus:border-crimson-600">
+                        </div>
+                    </div>
+                    <button type="button" onclick="applyPhysicalAudit()"
+                        class="w-full py-2.5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-extrabold rounded-xl transition shadow-sm cursor-pointer">
+                        اعتماد الجرد الفعلي
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 3: تعديل حركة خاطئة (تقبل الصفر 0 والأرقام العربية) -->
+    <!-- ===================================================================== -->
+    <div id="edit-log-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
+                <h3 class="font-extrabold text-base">تعديل كمية الحركة (يقبل 0)</h3>
+                <button type="button" onclick="closeEditLogModal()" class="text-white/80 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-3.5">
+                <p id="edit-log-item-label" class="text-xs sm:text-sm font-extrabold text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">الكمية الصحيحة (ضع 0 لإلغاء الحركة بالكامل):</label>
+                    <input type="text" inputmode="decimal" id="edit-log-qty-input"
+                        class="w-full px-3.5 py-2.5 bg-white border-2 border-slate-300 rounded-xl text-center text-xl font-extrabold focus:outline-none focus:border-crimson-600">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="confirmEditLog()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition cursor-pointer">حفظ وتصحيح الحساب</button>
+                    <button type="button" onclick="closeEditLogModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-extrabold rounded-xl cursor-pointer">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 4: تأكيد حذف مادة قبل التنفيذ -->
+    <!-- ===================================================================== -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>تأكيد حذف المادة</span>
+                </h3>
+                <button type="button" onclick="closeDeleteConfirmModal()" class="text-white/80 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-4 text-center">
+                <div class="w-14 h-14 rounded-full bg-crimson-100 text-crimson-700 flex items-center justify-center text-2xl mx-auto">
+                    <i class="fa-solid fa-trash-can"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-extrabold text-slate-900">هل أنت متأكد من حذف هذه المادة؟</p>
+                    <p id="delete-confirm-item-name" class="text-base font-extrabold text-crimson-700 mt-1 bg-crimson-50 py-1.5 px-3 rounded-xl border border-crimson-200"></p>
+                    <p class="text-[11px] text-slate-500 mt-2">سيتم نقل المادة إلى سلة المحذوفات ويمكنك استرجاعها في أي وقت.</p>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="executeConfirmedDelete()" class="flex-1 py-2.5 bg-crimson-700 hover:bg-crimson-800 text-white font-extrabold rounded-xl shadow-md transition cursor-pointer">
+                        نعم، احذف
+                    </button>
+                    <button type="button" onclick="closeDeleteConfirmModal()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl transition cursor-pointer">
+                        إلغاء
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 5: إضافة مادة جديدة -->
+    <!-- ===================================================================== -->
+    <div id="add-item-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
+                <h3 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-plus-circle"></i> إضافة مادة جديدة</h3>
+                <button type="button" onclick="closeAddNewItemModal()" class="text-white/80 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-3.5">
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">اسم المادة:</label>
+                    <input type="text" id="new-item-name" placeholder="مثلاً: سيروب كراميل مملح"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:outline-none focus:border-crimson-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">القسم:</label>
+                    <select id="new-item-category" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold">
+                        <option value="خلطات وبن ومواد أولية">خلطات وبن ومواد أولية</option>
+                        <option value="قهوة معبأة (علب 225غ)">قهوة معبأة (علب 225غ)</option>
+                        <option value="مكسرات ومستلزمات كاشير">مكسرات ومستلزمات كاشير</option>
+                        <option value="سموذي">سموذي</option>
+                        <option value="سيروبات ومنكهات">سيروبات ومنكهات</option>
+                        <option value="شوكولاتة وألبان ومواد كريب">شوكولاتة وألبان ومواد كريب</option>
+                        <option value="تغليف وسفري وأكواب">تغليف وسفري وأكواب</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">الوحدة:</label>
+                        <select id="new-item-unit" class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold">
+                            <option value="كيلو">كيلو</option>
+                            <option value="قطعة / باكيت">قطعة / باكيت</option>
+                            <option value="قطعة">قطعة</option>
+                            <option value="علبة">علبة</option>
+                            <option value="بطل">بطل</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 mb-1">أول المدة:</label>
+                        <input type="text" inputmode="decimal" id="new-item-stock" value="0"
+                            class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-center">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="submitNewItem()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition cursor-pointer">حفظ وإضافة</button>
+                    <button type="button" onclick="closeAddNewItemModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-extrabold rounded-xl cursor-pointer">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 6: تغيير الرمز السري للمدير -->
+    <!-- ===================================================================== -->
+    <div id="change-pin-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-crimson-800 text-white flex items-center justify-between">
+                <h3 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-key"></i> تغيير رمز المدير</h3>
+                <button type="button" onclick="closeChangePinModal()" class="text-white/80 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-3.5">
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-700 mb-1">الرمز السري الجديد (4 أرقام):</label>
+                    <input type="text" id="new-admin-pin-input" maxlength="6" inputmode="numeric" placeholder="أدخل الرمز الجديد"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-center text-lg font-extrabold tracking-widest">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="saveNewAdminPin()" class="flex-1 py-2.5 bg-crimson-700 hover:bg-crimson-800 text-white font-extrabold rounded-xl cursor-pointer">حفظ الرمز</button>
+                    <button type="button" onclick="closeChangePinModal()" class="px-4 py-2.5 bg-slate-200 text-slate-700 font-extrabold rounded-xl cursor-pointer">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- النافذة المنبثقة 7: معاينة قابلة للطباعة -->
+    <!-- ===================================================================== -->
+    <div id="print-preview-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-emerald-400"></i>
+                    <h3 class="font-extrabold text-sm sm:text-base">معاينة تقرير الجرد للطباعة أو النسخ</h3>
+                </div>
+                <button type="button" onclick="closePrintPreviewModal()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="print-preview-body" class="p-4 overflow-y-auto text-xs sm:text-sm space-y-3 bg-white flex-1"></div>
+            <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-slate-500">يمكنك طباعة التقرير مباشرة أو نسخه</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="copyReportSummaryText()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>نسخ التقرير</span>
+                    </button>
+                    <button type="button" onclick="runNativePrint()" class="px-4 py-2 bg-crimson-700 hover:bg-crimson-800 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-print"></i>
+                        <span>إرسال للطابعة</span>
+                    </button>
+                    <button type="button" onclick="closePrintPreviewModal()" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-extrabold cursor-pointer">
+                        إغلاق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- منطق التطبيق الكامل + الحفظ المحلي + التحقق الذاتي للحسابات -->
+    <!-- ===================================================================== -->
+    <script>
+        const LOCAL_BACKUP_KEY = 'cafe_warehouse_clean_v2';
+
+        // قائمة الـ 136 مادة الأصلية الكاملة عبر 7 أقسام
+        const INITIAL_136_ITEMS = [
+            // القسم 1: خلطات وبن ومواد أولية (41 مادة)
+            { id: "item_001", name: "خليط المحلى", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_002", name: "خليط ايس جكليت - فل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_003", name: "خليط ايس كوفي", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_004", name: "خليط بندق", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_005", name: "خليط بيضاء", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_006", name: "خليط جكليت", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_007", name: "خليط راشي", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_008", name: "خليط سحلب", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_009", name: "خليط شاي تفاح", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_010", name: "خليط شاي كرك", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_011", name: "خليط شاي كيوي", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_012", name: "شاي هيل فل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_013", name: "خليط شاي ليمون نعناع", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_014", name: "حب هندي 10000 غرام (وسط)", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_015", name: "حب برازيلي 10000 غرام (وسط)", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_016", name: "خليط قهوة حب اسبرسو مختصة", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_017", name: "خليط فرنسية", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_018", name: "خليط فستق", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_019", name: "خليط فانيلا", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_020", name: "خليط نعناع", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_021", name: "خليط كراميل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_022", name: "خليط كابتشينو", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_023", name: "خليط نستلة", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_024", name: "خليط كاكاو حليب", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_025", name: "خليط نسكافيه مصنع", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_026", name: "خليط هوت جكليت", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_027", name: "خليط نومي بصرة ساخن", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_028", name: "خليط موكاتشينو", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_029", name: "لب فستق عبيد بدون قشر", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_030", name: "لب فستق حلبي", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_031", name: "سكر وزن فل", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_032", name: "جوز هند مبروش", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_033", name: "شاي اخضر تيباك", category: "خلطات وبن ومواد أولية", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_034", name: "شاي احمد تيباك", category: "خلطات وبن ومواد أولية", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_035", name: "حب هيل", category: "خلطات وبن ومواد أولية", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_036", name: "دارسين باودر", category: "خلطات وبن ومواد أولية", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_037", name: "عجين كريب", category: "خلطات وبن ومواد أولية", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_038", name: "هيل مطحون", category: "خلطات وبن ومواد أولية", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_039", name: "ماتشا", category: "خلطات وبن ومواد أولية", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_040", name: "صوص كراميل", category: "خلطات وبن ومواد أولية", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_041", name: "فلتر كمكس", category: "خلطات وبن ومواد أولية", unit: "كيلو", openingBalance: 0, stock: 0 },
+
+            // القسم 2: قهوة معبأة (علب 225غ) (17 مادة)
+            { id: "item_042", name: "قهوة بالبندق 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_043", name: "قهوة فرنسية 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_044", name: "قهوة بالجكليت 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_045", name: "قهوة بالفانيلا 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_046", name: "قهوة تركية وسط بالهيل 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_047", name: "قهوة تركية سادة 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_048", name: "قهوة شوكولاتة 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_049", name: "قهوة فستق حلبي 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_050", name: "قهوة كراميل 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_051", name: "قهوة هيل ودارسين 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_052", name: "قهوة برازيلي بالهيل 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_053", name: "قهوة برازيلي سادة 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_054", name: "سحلب سادة 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_055", name: "كابتشينو 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_056", name: "هوت جكليت 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_057", name: "قهوة اسبريسو 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_058", name: "قهوة نعناع 225 غرام*20", category: "قهوة معبأة (علب 225غ)", unit: "علبة", openingBalance: 0, stock: 0 },
+
+            // القسم 3: مكسرات ومستلزمات كاشير (7 مواد)
+            { id: "item_059", name: "مكسرات", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_060", name: "مكسرات حجم كبير", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_061", name: "ماربل بالتمر", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_062", name: "دراجية بالراشي", category: "مكسرات ومستلزمات كاشير", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_063", name: "رول طباعة للكاشير", category: "مكسرات ومستلزمات كاشير", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_064", name: "سلفون حراري كبس", category: "مكسرات ومستلزمات كاشير", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_065", name: "ورق رول ايصال حراري", category: "مكسرات ومستلزمات كاشير", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+
+            // القسم 4: سموذي (5 مواد)
+            { id: "item_066", name: "سموذي منكا", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_067", name: "سموذي فرولة", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_068", name: "سموذي ريد بريس(فواكه حمراء)", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_069", name: "سموذي رمان", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_070", name: "سموذي توت ازرق", category: "سموذي", unit: "بطل", openingBalance: 0, stock: 0 },
+
+            // القسم 5: سيروبات ومنكهات (19 مادة)
+            { id: "item_071", name: "سيروب كراميل", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_072", name: "سيروب بندق", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_073", name: "سيروب كوكيز", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_074", name: "سيروب فانيلا", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_075", name: "سيروب منكا", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_076", name: "سيروب خوخ (دراق)", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_077", name: "سيروب فرولة", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_078", name: "سيروب نعناع", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_079", name: "سيروب باشن فروت", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_080", name: "سيروب بلو blue curacao", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_081", name: "سيروب علكة bubble gum", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_082", name: "اسكنجبيل تكسا (اسكنجبين)", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_083", name: "سيروب رمان نادر", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_084", name: "سيروب جوز هند", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_085", name: "سيروب نارنج مركز", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_086", name: "سيروب لافندر", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_087", name: "سيروب نومي بصرة", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_088", name: "بخاخ كريب زيتي", category: "سيروبات ومنكهات", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_089", name: "طلقات مسدس كريمة", category: "سيروبات ومنكهات", unit: "قطعة", openingBalance: 0, stock: 0 },
+
+            // القسم 6: شوكولاتة وألبان ومواد كريب (22 مادة)
+            { id: "item_090", name: "سطل شوكولا ابيض بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_091", name: "سطل شوكولا بالبندق بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_092", name: "سطل شوكولا دارك بالكيلو", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_093", name: "نوتلا", category: "شوكولاتة وألبان ومواد كريب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_094", name: "حليب محلى * 48", category: "شوكولاتة وألبان ومواد كريب", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_095", name: "سطل زبدة لوتس", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_096", name: "بسكت اوريو", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_097", name: "بسكت لوتس", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_098", name: "كندر", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_099", name: "سنيكرز", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_100", name: "كبوس ايس كريم", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_101", name: "حليب شوفان", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_102", name: "حليب لوز", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_103", name: "حليب خالي اللاكتوز", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_104", name: "حليب كامل الدسم", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_105", name: "جبن انكور", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_106", name: "مربى فرولة", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_107", name: "نستلة لؤي", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_108", name: "زعتر", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_109", name: "صودا ليمون", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_110", name: "تايكربطل", category: "شوكولاتة وألبان ومواد كريب", unit: "بطل", openingBalance: 0, stock: 0 },
+            { id: "item_111", name: "طحين صفر داس", category: "شوكولاتة وألبان ومواد كريب", unit: "قطعة", openingBalance: 0, stock: 0 },
+
+            // القسم 7: تغليف وسفري وأكواب (25 مادة)
+            { id: "item_112", name: "حراكة خشبية", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_113", name: "حمالة ثنائية مطبوعة", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_114", name: "حمالة رباعية مطبوعة", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_115", name: "سلاش 12 اونز (14 اونز) (كلاص للبارد)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_116", name: "كلاص سلاش كبير 16اونز (بارد)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_117", name: "سيت طعام اسود(جطل+سكين)", category: "تغليف وسفري وأكواب", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_118", name: "علاكة ورقية لوكو صغير", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_119", name: "علاكة ورقية لوكو كبير", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_120", name: "علبة ايس كريم 500 سي سي لوكو(كلاص ايس كريم وسط)", category: "تغليف وسفري وأكواب", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_121", name: "علبة كريب مطبوعة(حمالة كريب)", category: "تغليف وسفري وأكواب", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_122", name: "علب معجنات مربع كبير شباك(بوكس كيك)", category: "تغليف وسفري وأكواب", unit: "علبة", openingBalance: 0, stock: 0 },
+            { id: "item_123", name: "قدح سلطة فواكه (سفري فواكه)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_124", name: "كصب لوكو حجم كبير (قصبات بارد)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_125", name: "كصب لوكو حجم صغير", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_126", name: "كلاص قهوة سفري 12 اونز (كبير حار)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_127", name: "كلاص قهوة سفري 4 اونز (صغير حار)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_128", name: "كلاص قهوة سفري 8 اونز لوكو (وسط حار)", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_129", name: "كيس نايلون خبط كيلو 24*40", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_130", name: "ملاعق سحلب بالوزن", category: "تغليف وسفري وأكواب", unit: "قطعة / باكيت", openingBalance: 0, stock: 0 },
+            { id: "item_131", name: "منيو اطفال", category: "تغليف وسفري وأكواب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_132", name: "منيو عام-عربي", category: "تغليف وسفري وأكواب", unit: "قطعة", openingBalance: 0, stock: 0 },
+            { id: "item_133", name: "كيس تعبئة 1/4 كيلو بدون فالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_134", name: "كيس تعبئة كيلو بدون فالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_135", name: "كيس تعبئة 1/2 كيلو بدون بالف", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 },
+            { id: "item_136", name: "كيس كرواسون ورقي-كيلو الجديد", category: "تغليف وسفري وأكواب", unit: "كيلو", openingBalance: 0, stock: 0 }
+        ];
+
+        // =====================================================================
+        // دوال مساعدة للأرقام والتنسيق والتنبيهات
+        // =====================================================================
+        function normalizeDigits(str) {
+            if (str === null || str === undefined) return '';
+            const arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            const persianNums = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            return String(str)
+                .trim()
+                .replace(/[٠-٩]/g, d => arabicNums.indexOf(d))
+                .replace(/[۰-۹]/g, d => persianNums.indexOf(d))
+                .replace(/[٫،]/g, '.');
+        }
+
+        function parseCleanNumber(rawVal) {
+            const clean = normalizeDigits(rawVal);
+            if (clean === '') return NaN;
+            return Number(clean);
+        }
+
+        function roundQty(num) {
+            return Math.round((Number(num) + Number.EPSILON) * 10000) / 10000;
+        }
+
+        function formatNumber(num) {
+            const n = roundQty(num) || 0;
+            return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, '');
+        }
+
+        function formatDateTimeArabic(timestamp) {
+            if (!timestamp) return '-';
+            try {
+                return new Date(timestamp).toLocaleString('ar-IQ', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (_) {
+                return String(timestamp);
+            }
+        }
+
+        function getTodayDateString(offsetDays = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function showToast(message, type = 'success', undoItemId = null) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-700 text-white border-emerald-500',
+                error: 'bg-crimson-800 text-white border-crimson-500',
+                warning: 'bg-amber-600 text-white border-amber-400',
+                info: 'bg-slate-900 text-white border-slate-700'
+            };
+            const icons = {
+                success: 'fa-circle-check',
+                error: 'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation',
+                info: 'fa-circle-info'
+            };
+
+            const undoButtonHtml = undoItemId
+                ? `<button type="button" onclick="restoreDeletedItem('${undoItemId}', this)" class="mr-auto px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold shadow-sm whitespace-nowrap transition cursor-pointer">
+                    <i class="fa-solid fa-rotate-left ml-1"></i>تراجع
+                   </button>`
+                : '';
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border text-xs font-extrabold transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info} text-base"></i><span class="flex-1">${message}</span>${undoButtonHtml}`;
+            container.appendChild(toast);
+
+            const duration = undoItemId ? 12000 : 3200;
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 250);
+                }
+            }, duration);
+        }
+
+        // =====================================================================
+        // حالة التطبيق والحفظ المحلي الموثوق
+        // =====================================================================
+        function loadInitialState() {
+            const defaultItems = INITIAL_136_ITEMS.map((item, idx) => ({
+                ...item,
+                openingBalance: roundQty(item.openingBalance || 0),
+                stock: roundQty(item.stock || 0),
+                deleted: false,
+                orderIndex: idx + 1
+            }));
+
+            try {
+                const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+                        const normalizedItems = parsed.items.map((it, idx) => ({
+                            ...it,
+                            openingBalance: roundQty(it.openingBalance !== undefined ? it.openingBalance : (it.stock || 0)),
+                            stock: roundQty(it.stock !== undefined ? it.stock : 0),
+                            deleted: Boolean(it.deleted),
+                            orderIndex: it.orderIndex || (idx + 1)
+                        }));
+                        return {
+                            items: normalizedItems,
+                            logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+                            adminPin: normalizeDigits(parsed.adminPin || "1960"),
+                            updatedAt: parsed.updatedAt || Date.now()
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn("Storage fallback:", e);
+            }
+
+            return {
+                items: defaultItems,
+                logs: [],
+                adminPin: "1960",
+                updatedAt: Date.now()
+            };
+        }
+
+        let memoryState = loadInitialState();
+        let allItemsRaw = [];
+        let itemsList = [];
+        let deletedItemsList = [];
+        let logsList = [];
+        let adminPin = normalizeDigits(memoryState.adminPin || "1960");
+        let isAdminUnlocked = sessionStorage.getItem('cafe_admin_unlocked') === 'true';
+        let selectedCategory = "all";
+        let analyticsRange = "week";
+        let reportSortMode = "consumption_desc";
+        let activeQuickRange = "week";
+
+        let activeTx = { itemId: null, type: 'withdraw', qty: 0, note: '' };
+        let editingLogId = null;
+        let auditingItemId = null;
+        let pendingDeleteItem = null;
+        let computedReportRows = [];
+
+        function persistLocalState() {
+            try {
+                memoryState.updatedAt = Date.now();
+                localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
+                    items: memoryState.items,
+                    logs: memoryState.logs,
+                    adminPin: memoryState.adminPin,
+                    updatedAt: memoryState.updatedAt
+                }));
+                const backupEl = document.getElementById('last-backup-time');
+                if (backupEl) {
+                    backupEl.textContent = `آخر حفظ: ${formatDateTimeArabic(memoryState.updatedAt)}`;
+                }
+            } catch (_) {}
+        }
+
+        // حساب حالة المادة الموحدة:
+        // المتبقي = أول المدة + الإضافة - المصروف
+        function computeItemSummary(item, logs = logsList) {
+            const itemLogs = logs.filter(l => l.itemId === item.id);
+            let totalAdded = 0;
+            let totalWithdrawn = 0;
+
+            itemLogs.forEach(log => {
+                const q = roundQty(log.qty || 0);
+                if (q <= 0) return;
+                if (log.type === 'add') totalAdded = roundQty(totalAdded + q);
+                if (log.type === 'withdraw') totalWithdrawn = roundQty(totalWithdrawn + q);
+            });
+
+            const openingBalance = roundQty(item.openingBalance !== undefined ? item.openingBalance : item.stock);
+            const remaining = roundQty(item.stock !== undefined ? item.stock : (openingBalance + totalAdded - totalWithdrawn));
+            // المصروف يساوي مجموع السحوبات، وإذا وُجد فرق بين (أول المدة + الإضافة) والمتبقي الفعلي بعد جرد/تعديل ينعكس بدقة
+            const expectedFromMovements = roundQty(openingBalance + totalAdded - totalWithdrawn);
+            const hasManualAdjust = itemLogs.some(l => l.type === 'admin_adjust' || l.type === 'opening_set');
+            const spent = hasManualAdjust
+                ? Math.max(0, roundQty(openingBalance + totalAdded - remaining))
+                : (totalWithdrawn > 0 ? totalWithdrawn : Math.max(0, roundQty(openingBalance + totalAdded - remaining)));
+
+            return {
+                openingBalance,
+                added: totalAdded,
+                spent,
+                remaining,
+                expectedFromMovements
+            };
+        }
+
+        // فحص ذاتي عند بدء التشغيل للتأكد من سلامة الأرقام والمعادلات والـ 136 مادة
+        function runSelfCheck() {
+            try {
+                const activeCount = memoryState.items.filter(i => !i.deleted).length;
+                const sampleOpening = 20;
+                const sampleAdded = 0;
+                const sampleWithdrawn = 10;
+                const sampleRemaining = roundQty(sampleOpening + sampleAdded - sampleWithdrawn);
+                const ok = activeCount >= 136 && sampleRemaining === 10 && parseCleanNumber('٢٠') === 20;
+                if (!ok) {
+                    console.warn("Self-check warning:", { activeCount, sampleRemaining });
+                }
+            } catch (err) {
+                console.error("Self-check failed:", err);
+            }
+        }
+
+        function applyInMemorySnapshot() {
+            allItemsRaw = memoryState.items.map(i => ({ ...i }));
+            allItemsRaw.sort((a, b) => (a.orderIndex || 999) - (b.orderIndex || 999));
+
+            itemsList = allItemsRaw.filter(i => i.deleted !== true);
+            deletedItemsList = allItemsRaw.filter(i => i.deleted === true);
+            logsList = [...memoryState.logs].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            adminPin = normalizeDigits(memoryState.adminPin || "1960");
+
+            persistLocalState();
+
+            document.getElementById('deleted-count-badge').textContent = deletedItemsList.length;
+            document.getElementById('total-items-count').textContent = itemsList.length;
+
+            const summaryEl = document.getElementById('applied-changes-summary');
+            if (summaryEl) {
+                summaryEl.textContent = `المواد النشطة: ${itemsList.length} • المحذوفات: ${deletedItemsList.length} • الحركات: ${logsList.length}`;
+            }
+
+            populateCategoryFilters();
+            renderInventoryGrid();
+            renderPeriodReport();
+            renderLogsTable();
+            renderAnalyticsTab();
+
+            if (isAdminUnlocked) {
+                renderAdminStockTable();
+                renderAdminLogsTable();
+                renderAdminTrashTable();
+            }
+        }
+
+        function saveStaffPreferences() {
+            const staffName = document.getElementById('staff-name-input').value;
+            const shift = document.getElementById('shift-select').value;
+            try {
+                sessionStorage.setItem('cafe_staff_name', staffName);
+                sessionStorage.setItem('cafe_staff_shift', shift);
+            } catch (_) {}
+        }
+
+        function loadStaffPreferences() {
+            try {
+                const savedName = sessionStorage.getItem('cafe_staff_name');
+                const savedShift = sessionStorage.getItem('cafe_staff_shift');
+                if (savedName) document.getElementById('staff-name-input').value = savedName;
+                if (savedShift) document.getElementById('shift-select').value = savedShift;
+            } catch (_) {}
+        }
+
+        // =====================================================================
+        // التنقل والأقسام والبحث
+        // =====================================================================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-crimson-800', 'shadow-md');
+                btn.classList.add('text-white/95', 'hover:bg-white/15');
+            });
+
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeBtn.classList.remove('text-white/95', 'hover:bg-white/15');
+            activeBtn.classList.add('bg-white', 'text-crimson-800', 'shadow-md');
+
+            if (tabName === 'report') renderPeriodReport();
+            if (tabName === 'logs') renderLogsTable();
+            if (tabName === 'analytics') renderAnalyticsTab();
+            if (tabName === 'admin') syncAdminUiState();
+        }
+
+        function populateCategoryFilters() {
+            const categories = [...new Set(itemsList.map(i => i.category))];
+
+            const pillsContainer = document.getElementById('category-pills');
+            let pillsHtml = `
+                <button type="button" onclick="filterByCategory('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer ${selectedCategory === 'all' ? 'bg-crimson-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    الكل (${itemsList.length})
+                </button>
+                <button type="button" onclick="filterByCategory('zero')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer ${selectedCategory === 'zero' ? 'bg-crimson-800 text-white shadow-xs' : 'bg-crimson-50 text-crimson-800 hover:bg-crimson-100'}">
+                    المواد النافدة (0)
+                </button>
+            `;
+            categories.forEach(cat => {
+                const count = itemsList.filter(i => i.category === cat).length;
+                const isActive = selectedCategory === cat;
+                pillsHtml += `
+                    <button type="button" onclick="filterByCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${isActive ? 'bg-crimson-700 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        ${cat} (${count})
+                    </button>
+                `;
+            });
+            pillsContainer.innerHTML = pillsHtml;
+
+            const reportCatSelect = document.getElementById('report-category-filter');
+            const adminCatSelect = document.getElementById('admin-category-filter');
+            const currentReportVal = reportCatSelect.value;
+            const currentAdminVal = adminCatSelect.value;
+
+            let optionsHtml = `<option value="all">جميع الأقسام (${itemsList.length})</option>`;
+            categories.forEach(cat => {
+                optionsHtml += `<option value="${cat}">${cat}</option>`;
+            });
+
+            reportCatSelect.innerHTML = optionsHtml;
+            adminCatSelect.innerHTML = optionsHtml;
+            reportCatSelect.value = currentReportVal || 'all';
+            adminCatSelect.value = currentAdminVal || 'all';
+        }
+
+        function filterByCategory(cat) {
+            selectedCategory = cat;
+            populateCategoryFilters();
+            renderInventoryGrid();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-items-input').value = '';
+            renderInventoryGrid();
+        }
+
+        // =====================================================================
+        // عرض بطاقات المخزن والسحب/الإضافة
+        // =====================================================================
+        function renderInventoryGrid() {
+            const queryText = document.getElementById('search-items-input').value.trim().toLowerCase();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (queryText) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+
+            const zeroStockItems = itemsList.filter(i => (Number(i.stock) || 0) <= 0);
+            document.getElementById('zero-stock-badge').textContent = zeroStockItems.length;
+
+            const filtered = itemsList.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(queryText) || item.category.toLowerCase().includes(queryText);
+                if (!matchesSearch) return false;
+                if (selectedCategory === 'all') return true;
+                if (selectedCategory === 'zero') return (Number(item.stock) || 0) <= 0;
+                return item.category === selectedCategory;
+            });
+
+            document.getElementById('displayed-items-count').textContent = filtered.length;
+
+            const grid = document.getElementById('inventory-grid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-10 rounded-2xl text-center border border-slate-200">
+                        <i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3"></i>
+                        <p class="text-slate-600 font-bold">لا توجد مواد مطابقة لبحثك</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                const summary = computeItemSummary(item);
+                const stock = summary.remaining;
+                const isZero = stock <= 0;
+                const isLowCoverage = summary.spent > 0 && stock < summary.spent;
+
+                let statusBadge = '';
+                let cardBorder = 'border-slate-200/90';
+                if (isZero) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-crimson-100 text-crimson-800">نافد</span>`;
+                    cardBorder = 'border-crimson-300 bg-crimson-50/20';
+                } else if (isLowCoverage) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">المتبقي أقل من الصرف</span>`;
+                    cardBorder = 'border-amber-300/90';
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700">متوفر</span>`;
+                }
+
+                return `
+                    <div class="bg-white rounded-2xl p-3.5 shadow-xs border ${cardBorder} flex flex-col justify-between hover:shadow-md transition-all">
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[70%]">${item.category}</span>
+                                ${statusBadge}
+                            </div>
+                            <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-2">${item.name}</h3>
+                        </div>
+
+                        <div class="space-y-2.5 pt-2 border-t border-slate-100">
+                            <div class="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                                <span>أول المدة: <strong class="text-slate-800">${formatNumber(summary.openingBalance)}</strong></span>
+                                <span>المصروف: <strong class="text-crimson-700">${formatNumber(summary.spent)}</strong></span>
+                            </div>
+
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xs font-bold text-slate-500">المتبقي:</span>
+                                <div>
+                                    <span class="text-xl font-extrabold ${isZero ? 'text-crimson-700' : 'text-emerald-800'}">${formatNumber(stock)}</span>
+                                    <span class="text-xs font-bold text-slate-500 mr-1">${item.unit}</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="openTransactionModal('${item.id}', 'withdraw')"
+                                    class="py-2.5 px-3 bg-crimson-700 hover:bg-crimson-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
+                                    <i class="fa-solid fa-minus"></i>
+                                    <span>سحب (-)</span>
+                                </button>
+                                <button type="button" onclick="openTransactionModal('${item.id}', 'add')"
+                                    class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>إضافة (+)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // نافذة السحب والإضافة + التأكيد الفوري
+        // =====================================================================
+        function openTransactionModal(itemId, type) {
+            const staffName = document.getElementById('staff-name-input').value.trim();
+            if (!staffName) {
+                showToast("اكتب اسم الموظف في أعلى الشاشة أولاً!", "warning");
+                document.getElementById('staff-name-input').focus();
+                return;
+            }
+
+            const item = itemsList.find(i => i.id === itemId);
+            if (!item) return;
+
+            activeTx = { itemId: item.id, type, qty: 0, note: '' };
+
+            const header = document.getElementById('tx-modal-header');
+            const title = document.getElementById('tx-modal-title');
+            const icon = document.getElementById('tx-modal-icon');
+
+            if (type === 'withdraw') {
+                header.className = 'p-4 text-white flex items-center justify-between bg-crimson-700';
+                title.textContent = 'تسجيل سحب من المخزن (-)';
+                icon.className = 'fa-solid fa-minus-circle text-lg';
+            } else {
+                header.className = 'p-4 text-white flex items-center justify-between bg-emerald-600';
+                title.textContent = 'إضافة وارد للمخزن (+)';
+                icon.className = 'fa-solid fa-plus-circle text-lg';
+            }
+
+            document.getElementById('tx-item-category').textContent = item.category;
+            document.getElementById('tx-item-name').textContent = item.name;
+            document.getElementById('tx-current-stock').textContent = formatNumber(item.stock);
+            document.getElementById('tx-item-unit').textContent = item.unit;
+            document.getElementById('tx-input-unit-label').textContent = item.unit;
+
+            document.getElementById('tx-qty-input').value = '';
+            document.getElementById('tx-note-input').value = '';
+            document.getElementById('tx-error-box').classList.add('hidden');
+
+            document.getElementById('tx-step-input').classList.remove('hidden');
+            document.getElementById('tx-step-confirm').classList.add('hidden');
+
+            const modal = document.getElementById('transaction-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('tx-qty-input').focus(), 80);
+        }
+
+        function closeTransactionModal() {
+            const modal = document.getElementById('transaction-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function setQuickQty(val) {
+            document.getElementById('tx-qty-input').value = val;
+            updateTxPreview();
+        }
+
+        function updateTxPreview() {
+            document.getElementById('tx-error-box').classList.add('hidden');
+        }
+
+        function proceedToConfirmation() {
+            const item = itemsList.find(i => i.id === activeTx.itemId);
+            if (!item) return;
+
+            const qty = parseCleanNumber(document.getElementById('tx-qty-input').value);
+            const note = document.getElementById('tx-note-input').value.trim();
+            const currentStock = roundQty(item.stock || 0);
+
+            if (isNaN(qty) || qty <= 0) {
+                document.getElementById('tx-error-text').textContent = "يرجى إدخال كمية صحيحة أكبر من صفر.";
+                document.getElementById('tx-error-box').classList.remove('hidden');
+                return;
+            }
+
+            if (activeTx.type === 'withdraw' && qty > currentStock) {
+                document.getElementById('tx-error-text').textContent = `الكمية المسحوبة (${formatNumber(qty)}) أكبر من المتبقي الحالي (${formatNumber(currentStock)})!`;
+                document.getElementById('tx-error-box').classList.remove('hidden');
+                return;
+            }
+
+            activeTx.qty = roundQty(qty);
+            activeTx.note = note;
+
+            const afterStock = activeTx.type === 'withdraw'
+                ? roundQty(currentStock - activeTx.qty)
+                : roundQty(currentStock + activeTx.qty);
+
+            const staffName = document.getElementById('staff-name-input').value.trim();
+            const shift = document.getElementById('shift-select').value;
+
+            const typeBadge = document.getElementById('confirm-type-text');
+            const badgeIcon = document.getElementById('confirm-badge-icon');
+            if (activeTx.type === 'withdraw') {
+                typeBadge.textContent = "سحب (-)";
+                typeBadge.className = "font-extrabold text-crimson-700 px-2.5 py-0.5 rounded-lg bg-crimson-100";
+                badgeIcon.className = "w-14 h-14 rounded-full bg-crimson-100 text-crimson-700 flex items-center justify-center text-2xl mx-auto mb-2";
+            } else {
+                typeBadge.textContent = "إضافة (+)";
+                typeBadge.className = "font-extrabold text-emerald-700 px-2.5 py-0.5 rounded-lg bg-emerald-100";
+                badgeIcon.className = "w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl mx-auto mb-2";
+            }
+
+            document.getElementById('confirm-item-name').textContent = item.name;
+            document.getElementById('confirm-qty-text').textContent = `${formatNumber(activeTx.qty)} ${item.unit}`;
+            document.getElementById('confirm-before-stock').textContent = `${formatNumber(currentStock)}`;
+            document.getElementById('confirm-after-stock').textContent = `${formatNumber(afterStock)} ${item.unit}`;
+            document.getElementById('confirm-staff-info').textContent = `${staffName} (${shift})`;
+
+            document.getElementById('tx-step-input').classList.add('hidden');
+            document.getElementById('tx-step-confirm').classList.remove('hidden');
+        }
+
+        function backToTxInput() {
+            document.getElementById('tx-step-confirm').classList.add('hidden');
+            document.getElementById('tx-step-input').classList.remove('hidden');
+        }
+
+        function executeConfirmedTransaction() {
+            const item = itemsList.find(i => i.id === activeTx.itemId);
+            if (!item) return;
+
+            const currentStock = roundQty(item.stock || 0);
+            const qty = roundQty(activeTx.qty);
+            const newStock = activeTx.type === 'withdraw'
+                ? roundQty(currentStock - qty)
+                : roundQty(currentStock + qty);
+
+            const staffName = document.getElementById('staff-name-input').value.trim();
+            const shift = document.getElementById('shift-select').value;
+            const now = Date.now();
+            const dateStr = getTodayDateString(0);
+
+            const memItem = memoryState.items.find(m => m.id === item.id);
+            if (memItem) {
+                memItem.stock = newStock;
+            }
+
+            const logPayload = {
+                id: `log_${now}_${Math.random().toString(36).slice(2, 6)}`,
+                itemId: item.id,
+                itemName: item.name,
+                category: item.category,
+                unit: item.unit,
+                type: activeTx.type,
+                qty,
+                beforeStock: currentStock,
+                afterStock: newStock,
+                staffName,
+                shift,
+                note: activeTx.note,
+                timestamp: now,
+                dateStr
+            };
+
+            memoryState.logs.unshift(logPayload);
+            applyInMemorySnapshot();
+
+            closeTransactionModal();
+            const actionWord = activeTx.type === 'withdraw' ? 'سحب' : 'إضافة';
+            showToast(`تم ${actionWord} ${formatNumber(qty)} ${item.unit} • المتبقي الآن: ${formatNumber(newStock)}`, 'success');
+        }
+
+        // =====================================================================
+        // الجرد الأسبوعي وحساب: المتبقي = أول المدة + الإضافة - المصروف
+        // =====================================================================
+        function updateQuickRangeButtonsUi() {
+            ['today', 'week', 'month'].forEach(r => {
+                const btn = document.getElementById(`quick-range-${r}`);
+                if (!btn) return;
+                btn.className = r === activeQuickRange
+                    ? 'px-2.5 py-1.5 bg-crimson-700 text-white rounded-lg text-xs font-extrabold shadow-xs transition cursor-pointer'
+                    : 'px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-extrabold transition cursor-pointer';
+            });
+        }
+
+        function handleManualDateChange() {
+            activeQuickRange = '';
+            updateQuickRangeButtonsUi();
+            renderPeriodReport();
+        }
+
+        function setQuickDateRange(rangeType) {
+            activeQuickRange = rangeType;
+            const endInput = document.getElementById('report-end-date');
+            const startInput = document.getElementById('report-start-date');
+            const today = getTodayDateString(0);
+
+            endInput.value = today;
+            if (rangeType === 'today') {
+                startInput.value = today;
+            } else if (rangeType === 'week') {
+                startInput.value = getTodayDateString(-7);
+            } else if (rangeType === 'month') {
+                const d = new Date();
+                startInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+            }
+            updateQuickRangeButtonsUi();
+            renderPeriodReport();
+        }
+
+        function setReportSort(mode) {
+            reportSortMode = mode;
+            const descBtn = document.getElementById('sort-btn-consumption_desc');
+            const defaultBtn = document.getElementById('sort-btn-default_order');
+
+            if (mode === 'consumption_desc') {
+                descBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs transition cursor-pointer';
+                defaultBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer';
+            } else {
+                defaultBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs transition cursor-pointer';
+                descBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer';
+            }
+            renderPeriodReport();
+        }
+
+        function renderPeriodReport() {
+            const startDateStr = document.getElementById('report-start-date').value;
+            const endDateStr = document.getElementById('report-end-date').value;
+            const catFilter = document.getElementById('report-category-filter').value;
+            const actFilter = document.getElementById('report-activity-filter').value;
+
+            if (!startDateStr || !endDateStr) return;
+
+            const startTs = new Date(`${startDateStr}T00:00:00`).getTime();
+            const endTs = new Date(`${endDateStr}T23:59:59.999`).getTime();
+
+            document.getElementById('report-period-subtitle').textContent =
+                `الفترة: من ${startDateStr} إلى ${endDateStr} • المتبقي = أول المدة + الإضافة - المصروف`;
+
+            const allComputedForFilter = itemsList
+                .filter(item => catFilter === 'all' || item.category === catFilter)
+                .map((item, idx) => {
+                    const currentStock = roundQty(item.stock || 0);
+                    const itemLogs = logsList.filter(l => l.itemId === item.id);
+
+                    let periodAdded = 0;
+                    let periodWithdrawn = 0;
+                    let periodAdjustDelta = 0;
+                    let afterEndDelta = 0;
+
+                    itemLogs.forEach(log => {
+                        const ts = log.timestamp || 0;
+                        const q = roundQty(log.qty || 0);
+                        if (q < 0) return;
+
+                        if (ts > endTs) {
+                            if (log.type === 'add') afterEndDelta = roundQty(afterEndDelta + q);
+                            else if (log.type === 'withdraw') afterEndDelta = roundQty(afterEndDelta - q);
+                            else if (log.type === 'admin_adjust') {
+                                afterEndDelta = roundQty(afterEndDelta + ((Number(log.afterStock) || 0) - (Number(log.beforeStock) || 0)));
+                            }
+                        } else if (ts >= startTs && ts <= endTs) {
+                            if (log.type === 'add') periodAdded = roundQty(periodAdded + q);
+                            else if (log.type === 'withdraw') periodWithdrawn = roundQty(periodWithdrawn + q);
+                            else if (log.type === 'admin_adjust') {
+                                periodAdjustDelta = roundQty(periodAdjustDelta + ((Number(log.afterStock) || 0) - (Number(log.beforeStock) || 0)));
+                            }
+                        }
+                    });
+
+                    const closingStock = roundQty(currentStock - afterEndDelta);
+                    const rawOpening = roundQty(item.openingBalance !== undefined ? item.openingBalance : (closingStock - periodAdded + periodWithdrawn - periodAdjustDelta));
+                    const openingStock = Math.max(0, rawOpening);
+                    const netConsumed = periodAdjustDelta !== 0
+                        ? Math.max(0, roundQty(openingStock + periodAdded - closingStock))
+                        : (periodWithdrawn > 0 ? periodWithdrawn : Math.max(0, roundQty(openingStock + periodAdded - closingStock)));
+                    const remainingDisplay = currentStock;
+                    const isBelowConsumption = netConsumed > 0 && remainingDisplay < netConsumed;
+
+                    return {
+                        index: idx + 1,
+                        item,
+                        openingStock,
+                        periodAdded,
+                        netConsumed,
+                        currentStock: remainingDisplay,
+                        isBelowConsumption,
+                        hasActivity: periodAdded > 0 || netConsumed > 0 || periodAdjustDelta !== 0
+                    };
+                });
+
+            const lowCoverageTotal = allComputedForFilter.filter(r => r.isBelowConsumption).length;
+            const summaryBadge = document.getElementById('low-coverage-summary-badge');
+            const summaryCount = document.getElementById('low-coverage-count');
+            if (lowCoverageTotal > 0) {
+                summaryCount.textContent = lowCoverageTotal;
+                summaryBadge.classList.remove('hidden');
+            } else {
+                summaryBadge.classList.add('hidden');
+            }
+
+            computedReportRows = allComputedForFilter
+                .filter(row => {
+                    if (actFilter === 'low_coverage') return row.isBelowConsumption;
+                    if (actFilter === 'active') return row.hasActivity;
+                    if (actFilter === 'withdrawn') return row.netConsumed > 0;
+                    return true;
+                })
+                .sort((a, b) => {
+                    if (reportSortMode === 'consumption_desc') {
+                        if (b.netConsumed !== a.netConsumed) return b.netConsumed - a.netConsumed;
+                        if (b.isBelowConsumption !== a.isBelowConsumption) return (b.isBelowConsumption ? 1 : 0) - (a.isBelowConsumption ? 1 : 0);
+                    }
+                    return a.index - b.index;
+                });
+
+            const tbody = document.getElementById('period-report-tbody');
+            if (computedReportRows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 font-bold">لا توجد بيانات مطابقة للفترة المحددة</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = computedReportRows.map(r => {
+                const rowHighlight = r.isBelowConsumption ? 'bg-amber-50/45' : '';
+                const coverageTag = r.isBelowConsumption
+                    ? `<span class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">المتبقي أقل من الصرف</span>`
+                    : `<span class="text-slate-400">${r.item.unit}</span>`;
+
+                return `
+                <tr onclick="openItemAuditModal('${r.item.id}')" class="${rowHighlight} hover:bg-crimson-50/40 active:bg-crimson-50 cursor-pointer transition">
+                    <td class="py-2.5 px-1.5 sm:px-3">
+                        <div class="font-extrabold text-slate-900 text-[11px] sm:text-sm leading-snug break-words">${r.item.name}</div>
+                        <div class="text-[9px] sm:text-[10px] font-bold mt-0.5">${coverageTag}</div>
+                    </td>
+                    <td class="py-2.5 px-0.5 sm:px-2 text-center bg-slate-50/80">
+                        <span class="text-[11px] sm:text-sm font-extrabold text-slate-800">${formatNumber(r.openingStock)}</span>
+                    </td>
+                    <td class="py-2.5 px-0.5 sm:px-2 text-center bg-blue-50/35">
+                        <span class="text-[11px] sm:text-sm font-extrabold ${r.periodAdded > 0 ? 'text-blue-700' : 'text-slate-400'}">
+                            ${r.periodAdded > 0 ? '+' + formatNumber(r.periodAdded) : '0'}
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-0.5 sm:px-2 text-center bg-crimson-50/35">
+                        <span class="text-[11px] sm:text-sm font-extrabold ${r.netConsumed > 0 ? 'text-crimson-700' : 'text-slate-400'}">
+                            ${formatNumber(r.netConsumed)}
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-0.5 sm:px-2 text-center bg-emerald-50/35">
+                        <span class="text-[11px] sm:text-sm font-extrabold ${r.currentStock <= 0 ? 'text-crimson-700' : (r.isBelowConsumption ? 'text-amber-800' : 'text-emerald-700')}">
+                            ${formatNumber(r.currentStock)}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // نافذة تعديل أول المدة ومطابقة الجرد الفعلي
+        // =====================================================================
+        function openItemAuditModal(itemId) {
+            const row = computedReportRows.find(r => r.item.id === itemId);
+            if (!row) return;
+            auditingItemId = itemId;
+
+            document.getElementById('audit-item-cat').textContent = row.item.category;
+            document.getElementById('audit-item-name').textContent = row.item.name;
+            document.getElementById('audit-opening-val').textContent = `${formatNumber(row.openingStock)}`;
+            document.getElementById('audit-added-val').textContent = `+${formatNumber(row.periodAdded)}`;
+            document.getElementById('audit-logged-withdraw').textContent = `${formatNumber(row.netConsumed)}`;
+            document.getElementById('audit-current-stock').textContent = `${formatNumber(row.currentStock)} ${row.item.unit}`;
+
+            document.getElementById('audit-opening-input').value = row.openingStock;
+            document.getElementById('audit-physical-input').value = row.currentStock;
+
+            const pinWrapper = document.getElementById('audit-pin-wrapper');
+            const statusBadge = document.getElementById('audit-admin-status-badge');
+            if (isAdminUnlocked) {
+                pinWrapper.classList.add('hidden');
+                statusBadge.classList.remove('hidden');
+                document.getElementById('audit-pin-input').value = adminPin;
+            } else {
+                pinWrapper.classList.remove('hidden');
+                statusBadge.classList.add('hidden');
+                document.getElementById('audit-pin-input').value = '';
+            }
+
+            const modal = document.getElementById('item-audit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeItemAuditModal() {
+            const modal = document.getElementById('item-audit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function checkAuditPinOrUnlock() {
+            if (isAdminUnlocked) return true;
+            const enteredPin = normalizeDigits(document.getElementById('audit-pin-input').value);
+            if (enteredPin !== adminPin) {
+                showToast("الرمز السري للمدير غير صحيح! (الرمز 1960 أو ١٩٦٠)", "error");
+                return false;
+            }
+            isAdminUnlocked = true;
+            sessionStorage.setItem('cafe_admin_unlocked', 'true');
+            syncAdminUiState();
+            return true;
+        }
+
+        // تحديث أول المدة وإعادة حساب المتبقي = أول المدة + الإضافة - المصروف
+        function applyOpeningFromAuditModal() {
+            if (!auditingItemId) return;
+            if (!checkAuditPinOrUnlock()) return;
+
+            const newOpening = parseCleanNumber(document.getElementById('audit-opening-input').value);
+            if (isNaN(newOpening) || newOpening < 0) {
+                showToast("يرجى إدخال قيمة صحيحة لأول المدة (0 أو أكبر)", "warning");
+                return;
+            }
+
+            const memItem = memoryState.items.find(m => m.id === auditingItemId);
+            if (!memItem) return;
+
+            const oldOpening = roundQty(memItem.openingBalance || 0);
+            const cleanOpening = roundQty(newOpening);
+            const itemLogs = memoryState.logs.filter(l => l.itemId === memItem.id);
+            const totalAdded = itemLogs.filter(l => l.type === 'add').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
+            const totalWithdrawn = itemLogs.filter(l => l.type === 'withdraw').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
+
+            const recalculatedRemaining = Math.max(0, roundQty(cleanOpening + totalAdded - totalWithdrawn));
+            const oldRemaining = roundQty(memItem.stock || 0);
+
+            memItem.openingBalance = cleanOpening;
+            memItem.stock = recalculatedRemaining;
+
+            const staffName = document.getElementById('staff-name-input').value.trim() || 'المدير';
+            const shift = document.getElementById('shift-select').value;
+            const now = Date.now();
+
+            memoryState.logs.unshift({
+                id: `log_${now}_${Math.random().toString(36).slice(2, 6)}`,
+                itemId: memItem.id,
+                itemName: memItem.name,
+                category: memItem.category,
+                unit: memItem.unit,
+                type: 'opening_set',
+                qty: cleanOpening,
+                beforeStock: oldRemaining,
+                afterStock: recalculatedRemaining,
+                staffName,
+                shift,
+                note: `تعيين أول المدة من ${formatNumber(oldOpening)} إلى ${formatNumber(cleanOpening)}`,
+                timestamp: now,
+                dateStr: getTodayDateString(0)
+            });
+
+            applyInMemorySnapshot();
+            closeItemAuditModal();
+            showToast(`تم تحديث أول المدة إلى ${formatNumber(cleanOpening)} والمتبقي إلى ${formatNumber(recalculatedRemaining)}`, "success");
+        }
+
+        function applyPhysicalAudit() {
+            if (!auditingItemId) return;
+            if (!checkAuditPinOrUnlock()) return;
+
+            const physicalQty = parseCleanNumber(document.getElementById('audit-physical-input').value);
+            if (isNaN(physicalQty) || physicalQty < 0) {
+                showToast("يرجى إدخال رقم صحيح (0 أو أكثر)", "warning");
+                return;
+            }
+
+            const memItem = memoryState.items.find(m => m.id === auditingItemId);
+            if (!memItem) return;
+
+            const oldStock = roundQty(memItem.stock || 0);
+            const cleanPhysical = roundQty(physicalQty);
+            if (cleanPhysical === oldStock) {
+                closeItemAuditModal();
+                showToast("المتبقي مطابق تماماً ولا يوجد فرق", "info");
+                return;
+            }
+
+            const staffName = document.getElementById('staff-name-input').value.trim() || 'المدير';
+            const shift = document.getElementById('shift-select').value;
+            const now = Date.now();
+
+            memItem.stock = cleanPhysical;
+            memoryState.logs.unshift({
+                id: `log_${now}_${Math.random().toString(36).slice(2, 6)}`,
+                itemId: memItem.id,
+                itemName: memItem.name,
+                category: memItem.category,
+                unit: memItem.unit,
+                type: 'admin_adjust',
+                qty: Math.abs(roundQty(cleanPhysical - oldStock)),
+                beforeStock: oldStock,
+                afterStock: cleanPhysical,
+                staffName,
+                shift,
+                note: 'مطابقة جرد فعلي',
+                timestamp: now,
+                dateStr: getTodayDateString(0)
+            });
+
+            applyInMemorySnapshot();
+            closeItemAuditModal();
+            showToast(`تم اعتماد المتبقي الفعلي لـ (${memItem.name}) = ${formatNumber(cleanPhysical)}`, "success");
+        }
+
+        function exportReportCSV() {
+            const startDateStr = document.getElementById('report-start-date').value;
+            const endDateStr = document.getElementById('report-end-date').value;
+
+            if (!computedReportRows.length) {
+                showToast("لا توجد بيانات للتصدير", "warning");
+                return;
+            }
+
+            let csv = "\uFEFF";
+            csv += `"تقرير جرد المخزن من ${startDateStr} الى ${endDateStr}"\n`;
+            csv += `"اسم المادة","القسم","الوحدة","اول المدة","الاضافة (+)","المصروف (-)","المتبقي"\n`;
+
+            computedReportRows.forEach(r => {
+                csv += `"${r.item.name}","${r.item.category}","${r.item.unit}","${formatNumber(r.openingStock)}","${formatNumber(r.periodAdded)}","${formatNumber(r.netConsumed)}","${formatNumber(r.currentStock)}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `جرد_المخزن_${startDateStr}_الى_${endDateStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast("تم تصدير ملف الجرد بنجاح!", "success");
+        }
+
+        function triggerPrintReport() {
+            const startDateStr = document.getElementById('report-start-date').value;
+            const endDateStr = document.getElementById('report-end-date').value;
+
+            if (!computedReportRows.length) {
+                showToast("لا توجد بيانات لطباعتها", "warning");
+                return;
+            }
+
+            const previewBody = document.getElementById('print-preview-body');
+            const rowsHtml = computedReportRows.map(r => `
+                <tr class="border-b border-slate-200">
+                    <td class="py-2 px-2 font-bold text-slate-900">${r.item.name} <span class="text-[10px] text-slate-500">(${r.item.unit})</span></td>
+                    <td class="py-2 px-2 text-center font-bold">${formatNumber(r.openingStock)}</td>
+                    <td class="py-2 px-2 text-center font-bold text-blue-700">+${formatNumber(r.periodAdded)}</td>
+                    <td class="py-2 px-2 text-center font-bold text-crimson-700">${formatNumber(r.netConsumed)}</td>
+                    <td class="py-2 px-2 text-center font-extrabold text-emerald-700">${formatNumber(r.currentStock)}</td>
+                </tr>
+            `).join('');
+
+            previewBody.innerHTML = `
+                <div class="text-center border-b border-slate-200 pb-2.5">
+                    <h4 class="text-base font-extrabold text-crimson-900">تقرير جرد المخزن الأسبوعي</h4>
+                    <p class="text-xs font-bold text-slate-600">الفترة: من ${startDateStr} إلى ${endDateStr} • عدد المواد: ${computedReportRows.length}</p>
+                </div>
+                <table class="w-full text-right border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                            <th class="py-2 px-2">المادة</th>
+                            <th class="py-2 px-2 text-center">أول المدة</th>
+                            <th class="py-2 px-2 text-center">الإضافة (+)</th>
+                            <th class="py-2 px-2 text-center">المصروف (-)</th>
+                            <th class="py-2 px-2 text-center">المتبقي</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            `;
+
+            const modal = document.getElementById('print-preview-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function runNativePrint() {
+            try {
+                window.print();
+            } catch (_) {
+                showToast("استخدم زر «نسخ التقرير» أو خيارات المتصفح للطباعة", "info");
+            }
+        }
+
+        function closePrintPreviewModal() {
+            const modal = document.getElementById('print-preview-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function copyReportSummaryText() {
+            const startDateStr = document.getElementById('report-start-date').value;
+            const endDateStr = document.getElementById('report-end-date').value;
+            const lines = [
+                `تقرير الجرد (${startDateStr} إلى ${endDateStr})`,
+                '----------------------------------------',
+                ...computedReportRows.map(r =>
+                    `${r.item.name} | أول المدة: ${formatNumber(r.openingStock)} | إضافة: +${formatNumber(r.periodAdded)} | مصروف: ${formatNumber(r.netConsumed)} | متبقي: ${formatNumber(r.currentStock)}`
+                )
+            ];
+            const ta = document.createElement('textarea');
+            ta.value = lines.join('\n');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast("تم نسخ التقرير بالكامل إلى الحافظة!", "success");
+            } catch (_) {
+                showToast("تعذر النسخ تلقائياً", "warning");
+            }
+            document.body.removeChild(ta);
+        }
+
+        // =====================================================================
+        // التبويب 3: سجل الحركات
+        // =====================================================================
+        function renderLogsTable() {
+            const q = document.getElementById('logs-search-input').value.trim().toLowerCase();
+            const typeFilter = document.getElementById('logs-type-filter').value;
+
+            const filtered = logsList.filter(log => {
+                const matchText = (log.itemName || '').toLowerCase().includes(q) || (log.staffName || '').toLowerCase().includes(q);
+                if (!matchText) return false;
+                if (typeFilter !== 'all' && log.type !== typeFilter) return false;
+                return true;
+            });
+
+            const tbody = document.getElementById('logs-tbody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500 font-bold">لا توجد حركات مسجلة</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.slice(0, 150).map(log => {
+                let badge = '';
+                let qtyDisplay = '';
+                if (log.type === 'withdraw') {
+                    badge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-crimson-100 text-crimson-800">سحب (-)</span>`;
+                    qtyDisplay = `<span class="text-crimson-700 font-extrabold">-${formatNumber(log.qty)}</span>`;
+                } else if (log.type === 'add') {
+                    badge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-100 text-emerald-800">إضافة (+)</span>`;
+                    qtyDisplay = `<span class="text-emerald-700 font-extrabold">+${formatNumber(log.qty)}</span>`;
+                } else if (log.type === 'opening_set') {
+                    badge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-900">أول المدة</span>`;
+                    qtyDisplay = `<span class="text-amber-900 font-extrabold">${formatNumber(log.qty)}</span>`;
+                } else {
+                    badge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-200 text-slate-800">تعديل / جرد</span>`;
+                    qtyDisplay = `<span class="text-slate-800 font-extrabold">${formatNumber(log.beforeStock)}←${formatNumber(log.afterStock)}</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2.5 text-[11px] text-slate-500 font-semibold whitespace-nowrap">${formatDateTimeArabic(log.timestamp)}</td>
+                        <td class="p-2.5 font-extrabold text-slate-900 text-xs">${log.staffName || '-'} <span class="text-[10px] text-slate-400">(${log.shift || ''})</span></td>
+                        <td class="p-2.5 font-extrabold text-slate-900">${log.itemName}</td>
+                        <td class="p-2.5 text-center">${badge}</td>
+                        <td class="p-2.5 text-center">${qtyDisplay}</td>
+                        <td class="p-2.5 text-center font-extrabold text-slate-800">${formatNumber(log.afterStock)}</td>
+                        <td class="p-2.5 text-[11px] text-slate-500">${log.note || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // التبويب 4: التحليلات والنواقص
+        // =====================================================================
+        function setAnalyticsRange(range) {
+            analyticsRange = range;
+            ['today', 'week', 'month'].forEach(r => {
+                const btn = document.getElementById(`an-range-${r}`);
+                btn.className = r === range
+                    ? 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer'
+                    : 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer';
+            });
+            renderAnalyticsTab();
+        }
+
+        function renderAnalyticsTab() {
+            const zeroItems = itemsList.filter(i => (Number(i.stock) || 0) <= 0);
+            const availableItems = itemsList.filter(i => (Number(i.stock) || 0) > 0);
+
+            let startTs = 0;
+            if (analyticsRange === 'today') {
+                startTs = new Date(`${getTodayDateString(0)}T00:00:00`).getTime();
+            } else if (analyticsRange === 'week') {
+                startTs = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            } else {
+                startTs = Date.now() - (30 * 24 * 60 * 60 * 1000);
+            }
+
+            const periodLogs = logsList.filter(l => (l.timestamp || 0) >= startTs);
+            const withdrawLogs = periodLogs.filter(l => l.type === 'withdraw');
+            const addLogs = periodLogs.filter(l => l.type === 'add');
+
+            const totalWithdrawQty = withdrawLogs.reduce((acc, l) => roundQty(acc + (Number(l.qty) || 0)), 0);
+            const totalAddQty = addLogs.reduce((acc, l) => roundQty(acc + (Number(l.qty) || 0)), 0);
+
+            document.getElementById('stat-total-withdraw-ops').textContent = withdrawLogs.length;
+            document.getElementById('stat-total-withdraw-qty').textContent = `مجموع الكميات: ${formatNumber(totalWithdrawQty)}`;
+            document.getElementById('stat-total-add-ops').textContent = addLogs.length;
+            document.getElementById('stat-total-add-qty').textContent = `مجموع الكميات: ${formatNumber(totalAddQty)}`;
+            document.getElementById('stat-zero-items').textContent = zeroItems.length;
+            document.getElementById('stat-available-items').textContent = availableItems.length;
+
+            const morningWithdraws = withdrawLogs.filter(l => l.shift === 'صباحي');
+            const eveningWithdraws = withdrawLogs.filter(l => l.shift === 'مسائي');
+
+            const morningQty = morningWithdraws.reduce((acc, l) => roundQty(acc + (Number(l.qty) || 0)), 0);
+            const eveningQty = eveningWithdraws.reduce((acc, l) => roundQty(acc + (Number(l.qty) || 0)), 0);
+
+            document.getElementById('shift-morning-ops').textContent = morningWithdraws.length;
+            document.getElementById('shift-morning-qty').textContent = formatNumber(morningQty);
+            document.getElementById('shift-evening-ops').textContent = eveningWithdraws.length;
+            document.getElementById('shift-evening-qty').textContent = formatNumber(eveningQty);
+
+            const totalShiftQty = morningQty + eveningQty;
+            const morningPct = totalShiftQty > 0 ? Math.round((morningQty / totalShiftQty) * 100) : 50;
+            const eveningPct = totalShiftQty > 0 ? 100 - morningPct : 50;
+
+            document.getElementById('shift-morning-pct').textContent = `${morningPct}%`;
+            document.getElementById('shift-evening-pct').textContent = `${eveningPct}%`;
+            document.getElementById('shift-morning-bar').style.width = `${morningPct}%`;
+
+            const consumptionMap = {};
+            withdrawLogs.forEach(l => {
+                consumptionMap[l.itemId] = roundQty((consumptionMap[l.itemId] || 0) + (Number(l.qty) || 0));
+            });
+
+            const topConsumedContainer = document.getElementById('top-consumed-list');
+            const topList = itemsList
+                .map(i => ({ item: i, total: consumptionMap[i.id] || 0 }))
+                .filter(x => x.total > 0)
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 15);
+
+            if (topList.length === 0) {
+                topConsumedContainer.innerHTML = `<p class="text-center text-slate-400 font-bold py-6 text-xs">لم تُسجل عمليات سحب خلال هذه الفترة</p>`;
+            } else {
+                const maxVal = topList[0].total;
+                topConsumedContainer.innerHTML = topList.map((entry, idx) => {
+                    const pct = Math.max(8, Math.round((entry.total / maxVal) * 100));
+                    return `
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs font-extrabold">
+                                <span class="text-slate-800">${idx + 1}. ${entry.item.name}</span>
+                                <span class="text-crimson-700">${formatNumber(entry.total)} ${entry.item.unit}</span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-crimson-600 rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // =====================================================================
+        // التبويب 5: لوحة المدير (PIN: 1960 / ١٩٦٠)
+        // =====================================================================
+        function syncAdminUiState() {
+            if (isAdminUnlocked) {
+                document.getElementById('admin-lock-screen').classList.add('hidden');
+                document.getElementById('admin-dashboard-content').classList.remove('hidden');
+                document.getElementById('admin-lock-icon').className = 'fa-solid fa-lock-open text-emerald-300';
+                renderAdminStockTable();
+                renderAdminLogsTable();
+                renderAdminTrashTable();
+            } else {
+                document.getElementById('admin-dashboard-content').classList.add('hidden');
+                document.getElementById('admin-lock-screen').classList.remove('hidden');
+                document.getElementById('admin-lock-icon').className = 'fa-solid fa-lock';
+            }
+        }
+
+        function verifyAdminPin() {
+            const entered = normalizeDigits(document.getElementById('admin-pin-input').value);
+            if (entered === adminPin) {
+                isAdminUnlocked = true;
+                sessionStorage.setItem('cafe_admin_unlocked', 'true');
+                document.getElementById('pin-error-msg').classList.add('hidden');
+                document.getElementById('admin-pin-input').value = '';
+                syncAdminUiState();
+                showToast("تم فتح لوحة المدير وتفعيل الصلاحيات", "success");
+            } else {
+                document.getElementById('pin-error-msg').classList.remove('hidden');
+            }
+        }
+
+        function lockAdminPanel() {
+            isAdminUnlocked = false;
+            sessionStorage.removeItem('cafe_admin_unlocked');
+            syncAdminUiState();
+            showToast("تم قفل لوحة المدير", "info");
+        }
+
+        function switchAdminSubTab(sub) {
+            document.getElementById('admin-sub-stock').classList.toggle('hidden', sub !== 'stock');
+            document.getElementById('admin-sub-logs').classList.toggle('hidden', sub !== 'logs');
+            document.getElementById('admin-sub-trash').classList.toggle('hidden', sub !== 'trash');
+
+            document.getElementById('admin-sub-btn-stock').className = sub === 'stock'
+                ? 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer'
+                : 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer';
+
+            document.getElementById('admin-sub-btn-logs').className = sub === 'logs'
+                ? 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs cursor-pointer'
+                : 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer';
+
+            document.getElementById('admin-sub-btn-trash').className = sub === 'trash'
+                ? 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-crimson-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer'
+                : 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1.5 cursor-pointer';
+
+            if (sub === 'trash') renderAdminTrashTable();
+        }
+
+        function renderAdminStockTable() {
+            const q = document.getElementById('admin-search-input').value.trim().toLowerCase();
+            const cat = document.getElementById('admin-category-filter').value;
+
+            const filtered = itemsList.filter(item => {
+                const matchText = item.name.toLowerCase().includes(q);
+                const matchCat = cat === 'all' || item.category === cat;
+                return matchText && matchCat;
+            });
+
+            const tbody = document.getElementById('admin-stock-tbody');
+            tbody.innerHTML = filtered.map(item => {
+                const s = computeItemSummary(item);
+                return `
+                <tr class="hover:bg-slate-50" data-item-id="${item.id}">
+                    <td class="p-2.5">
+                        <div class="font-extrabold text-slate-900">${item.name}</div>
+                        <div class="text-[10px] text-slate-400">${item.unit}</div>
+                    </td>
+                    <td class="p-2.5 text-center font-extrabold text-slate-700">${formatNumber(s.openingBalance)}</td>
+                    <td class="p-2.5 text-center font-extrabold text-emerald-700">${formatNumber(s.remaining)}</td>
+                    <td class="p-2.5 text-center">
+                        <input type="text" inputmode="decimal" value="${s.openingBalance}" data-orig-opening="${s.openingBalance}"
+                            class="admin-opening-input w-24 px-2 py-1.5 text-center font-extrabold bg-amber-50/70 border border-amber-300 rounded-xl focus:outline-none focus:border-crimson-700">
+                    </td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="openDeleteConfirmModal('${item.id}')" title="حذف المادة"
+                            class="p-2 text-crimson-600 hover:bg-crimson-100 rounded-xl transition cursor-pointer">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function saveBulkStockChanges() {
+            if (!isAdminUnlocked) return;
+
+            const rows = document.querySelectorAll('#admin-stock-tbody tr');
+            const staffName = document.getElementById('staff-name-input').value.trim() || 'المدير';
+            const shift = document.getElementById('shift-select').value;
+            const now = Date.now();
+            const dateStr = getTodayDateString(0);
+            let changedCount = 0;
+
+            rows.forEach(tr => {
+                const itemId = tr.getAttribute('data-item-id');
+                const openingInput = tr.querySelector('.admin-opening-input');
+
+                const origOpening = roundQty(parseCleanNumber(openingInput.getAttribute('data-orig-opening')) || 0);
+                const newOpening = parseCleanNumber(openingInput.value);
+
+                if (!isNaN(newOpening) && newOpening >= 0 && roundQty(newOpening) !== origOpening) {
+                    const memItem = memoryState.items.find(m => m.id === itemId);
+                    if (memItem) {
+                        const cleanOpening = roundQty(newOpening);
+                        const itemLogs = memoryState.logs.filter(l => l.itemId === memItem.id);
+                        const totalAdded = itemLogs.filter(l => l.type === 'add').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
+                        const totalWithdrawn = itemLogs.filter(l => l.type === 'withdraw').reduce((s, l) => roundQty(s + (Number(l.qty) || 0)), 0);
+                        const newRemaining = Math.max(0, roundQty(cleanOpening + totalAdded - totalWithdrawn));
+                        const oldRemaining = roundQty(memItem.stock || 0);
+
+                        memItem.openingBalance = cleanOpening;
+                        memItem.stock = newRemaining;
+                        changedCount++;
+
+                        memoryState.logs.unshift({
+                            id: `log_${now}_${memItem.id}`,
+                            itemId: memItem.id,
+                            itemName: memItem.name,
+                            category: memItem.category,
+                            unit: memItem.unit,
+                            type: 'opening_set',
+                            qty: cleanOpening,
+                            beforeStock: oldRemaining,
+                            afterStock: newRemaining,
+                            staffName,
+                            shift,
+                            note: `تحديث أول المدة من ${formatNumber(origOpening)} إلى ${formatNumber(cleanOpening)}`,
+                            timestamp: now,
+                            dateStr
+                        });
+                    }
+                }
+            });
+
+            if (changedCount === 0) {
+                showToast("لم تقم بتغيير أي رقم", "info");
+                return;
+            }
+
+            applyInMemorySnapshot();
+            showToast(`تم حفظ وتحديث أول المدة والمتبقي لـ ${changedCount} مادة!`, "success");
+        }
+
+        function renderAdminLogsTable() {
+            const tbody = document.getElementById('admin-logs-tbody');
+            const recentLogs = logsList.filter(l => l.type === 'withdraw' || l.type === 'add').slice(0, 60);
+
+            if (recentLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-bold">لا توجد حركات لتعديلها</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = recentLogs.map(log => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-2.5 text-[11px] text-slate-500">${formatDateTimeArabic(log.timestamp)}</td>
+                    <td class="p-2.5 font-bold text-xs">${log.staffName}</td>
+                    <td class="p-2.5 font-extrabold text-slate-900">${log.itemName}</td>
+                    <td class="p-2.5 text-center">
+                        ${log.type === 'withdraw'
+                            ? '<span class="text-[10px] font-extrabold text-crimson-800 bg-crimson-100 px-2 py-0.5 rounded-md">سحب (-)</span>'
+                            : '<span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">إضافة (+)</span>'}
+                    </td>
+                    <td class="p-2.5 text-center font-extrabold">${formatNumber(log.qty)}</td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="openEditLogModal('${log.id}')" class="px-3 py-1.5 bg-crimson-700 hover:bg-crimson-800 text-white rounded-lg text-xs font-extrabold shadow-xs cursor-pointer">
+                            تعديل / تصفير
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openEditLogModal(logId) {
+            const log = logsList.find(l => l.id === logId);
+            if (!log) return;
+            editingLogId = logId;
+            document.getElementById('edit-log-item-label').textContent =
+                `${log.itemName} — (${log.type === 'withdraw' ? 'سحب' : 'إضافة'} مسجلة: ${formatNumber(log.qty)} ${log.unit || ''})`;
+            document.getElementById('edit-log-qty-input').value = log.qty;
+
+            const m = document.getElementById('edit-log-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            setTimeout(() => document.getElementById('edit-log-qty-input').select(), 80);
+        }
+
+        function closeEditLogModal() {
+            const m = document.getElementById('edit-log-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function confirmEditLog() {
+            if (!isAdminUnlocked || !editingLogId) return;
+            const log = logsList.find(l => l.id === editingLogId);
+            const item = allItemsRaw.find(i => i.id === log.itemId);
+            const newQty = parseCleanNumber(document.getElementById('edit-log-qty-input').value);
+
+            if (isNaN(newQty) || newQty < 0 || !item) {
+                showToast("يرجى إدخال رقم صحيح (0 أو أكبر)", "error");
+                return;
+            }
+
+            const oldQty = roundQty(log.qty || 0);
+            const cleanNewQty = roundQty(newQty);
+            const diff = roundQty(cleanNewQty - oldQty);
+            const currentStock = roundQty(item.stock || 0);
+
+            const correctedStock = Math.max(0, log.type === 'withdraw'
+                ? roundQty(currentStock - diff)
+                : roundQty(currentStock + diff));
+
+            const updatedNote = (log.note ? log.note + ' | ' : '') + `عدّلها المدير من ${formatNumber(oldQty)} إلى ${formatNumber(cleanNewQty)}`;
+
+            const memItem = memoryState.items.find(m => m.id === item.id);
+            if (memItem) memItem.stock = correctedStock;
+
+            const memLog = memoryState.logs.find(l => l.id === log.id);
+            if (memLog) {
+                memLog.qty = cleanNewQty;
+                memLog.afterStock = correctedStock;
+                memLog.note = updatedNote;
+            }
+
+            applyInMemorySnapshot();
+            closeEditLogModal();
+            showToast(`تم تعديل الكمية إلى ${formatNumber(cleanNewQty)} وتصحيح المتبقي تلقائياً`, "success");
+        }
+
+        // =====================================================================
+        // الحذف والاسترجاع والنسخ الاحتياطي JSON واستعادة الـ 136 مادة
+        // =====================================================================
+        function openDeleteConfirmModal(itemId) {
+            if (!isAdminUnlocked) return;
+            const item = itemsList.find(i => i.id === itemId);
+            if (!item) return;
+            pendingDeleteItem = item;
+            document.getElementById('delete-confirm-item-name').textContent = item.name;
+
+            const m = document.getElementById('delete-confirm-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeDeleteConfirmModal() {
+            pendingDeleteItem = null;
+            const m = document.getElementById('delete-confirm-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function executeConfirmedDelete() {
+            if (!isAdminUnlocked || !pendingDeleteItem) return;
+            const itemToDelete = { ...pendingDeleteItem };
+            closeDeleteConfirmModal();
+
+            const memItem = memoryState.items.find(m => m.id === itemToDelete.id);
+            if (memItem) {
+                memItem.deleted = true;
+                memItem.deletedAt = Date.now();
+            }
+            applyInMemorySnapshot();
+            showToast(`تم حذف (${itemToDelete.name})`, "info", itemToDelete.id);
+        }
+
+        function restoreDeletedItem(itemId, btnElement = null) {
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.textContent = "جاري الاسترجاع...";
+            }
+            const memItem = memoryState.items.find(m => m.id === itemId);
+            if (memItem) memItem.deleted = false;
+            applyInMemorySnapshot();
+            showToast("تم استرجاع المادة إلى المخزن بنجاح!", "success");
+        }
+
+        function restoreAllDeletedItems() {
+            if (!isAdminUnlocked || deletedItemsList.length === 0) return;
+            const idsToRestore = deletedItemsList.map(i => i.id);
+            memoryState.items.forEach(m => {
+                if (idsToRestore.includes(m.id)) m.deleted = false;
+            });
+            applyInMemorySnapshot();
+            showToast("تم استرجاع جميع المواد المحذوفة بنجاح!", "success");
+        }
+
+        function restoreAllMissing136Items(showNotification = false) {
+            INITIAL_136_ITEMS.forEach((item, idx) => {
+                const found = memoryState.items.find(m => m.id === item.id);
+                if (!found) {
+                    memoryState.items.push({
+                        ...item,
+                        openingBalance: roundQty(item.openingBalance || 0),
+                        stock: roundQty(item.stock || 0),
+                        deleted: false,
+                        orderIndex: idx + 1
+                    });
+                } else if (found.deleted === true) {
+                    found.deleted = false;
+                }
+            });
+            applyInMemorySnapshot();
+            if (showNotification) {
+                showToast("تم فحص واستعادة جميع المواد الـ 136 بنجاح!", "success");
+            }
+        }
+
+        function renderAdminTrashTable() {
+            const tbody = document.getElementById('admin-trash-tbody');
+            if (deletedItemsList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-bold">سلة المحذوفات فارغة حالياً</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = deletedItemsList.map(item => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-2.5 font-extrabold text-slate-900">${item.name}</td>
+                    <td class="p-2.5 text-xs text-slate-500">${item.category}</td>
+                    <td class="p-2.5 text-center font-bold">${formatNumber(item.stock)} ${item.unit}</td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="restoreDeletedItem('${item.id}', this)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition cursor-pointer">
+                            <i class="fa-solid fa-rotate-left ml-1"></i>استرجاع
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddNewItemModal() {
+            const m = document.getElementById('add-item-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeAddNewItemModal() {
+            const m = document.getElementById('add-item-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function submitNewItem() {
+            if (!isAdminUnlocked) return;
+            const name = document.getElementById('new-item-name').value.trim();
+            const category = document.getElementById('new-item-category').value;
+            const unit = document.getElementById('new-item-unit').value;
+            const openingVal = parseCleanNumber(document.getElementById('new-item-stock').value) || 0;
+
+            if (!name) {
+                showToast("اكتب اسم المادة أولاً", "warning");
+                return;
+            }
+
+            const cleanOpening = Math.max(0, roundQty(openingVal));
+            const newId = `item_${Date.now()}`;
+            memoryState.items.push({
+                id: newId,
+                name,
+                category,
+                unit,
+                openingBalance: cleanOpening,
+                stock: cleanOpening,
+                deleted: false,
+                orderIndex: allItemsRaw.length + 1
+            });
+
+            applyInMemorySnapshot();
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-stock').value = '0';
+            closeAddNewItemModal();
+            showToast(`تمت إضافة (${name}) بنجاح!`, "success");
+        }
+
+        function openChangePinModal() {
+            const m = document.getElementById('change-pin-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeChangePinModal() {
+            const m = document.getElementById('change-pin-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function saveNewAdminPin() {
+            if (!isAdminUnlocked) return;
+            const newPin = normalizeDigits(document.getElementById('new-admin-pin-input').value);
+            if (newPin.length < 4) {
+                showToast("يجب أن يكون الرمز 4 أرقام على الأقل", "warning");
+                return;
+            }
+            memoryState.adminPin = newPin;
+            adminPin = newPin;
+            document.getElementById('new-admin-pin-input').value = '';
+            closeChangePinModal();
+            showToast("تم تغيير الرمز السري بنجاح!", "success");
+        }
+
+        function exportBackupJSON() {
+            const payload = {
+                app: "نظام إدارة المخزن والجرد الذكي",
+                exportedAt: new Date().toISOString(),
+                adminPin,
+                items: memoryState.items,
+                logs: memoryState.logs
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `نسخة_احتياطية_المخزن_${getTodayDateString(0)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast("تم تصدير النسخة الاحتياطية JSON بنجاح!", "success");
+        }
+
+        async function importBackupJSON(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                if (!parsed || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+                    showToast("ملف JSON غير صالح أو لا يحتوي على مواد", "error");
+                    return;
+                }
+                memoryState.items = parsed.items;
+                if (Array.isArray(parsed.logs)) memoryState.logs = parsed.logs;
+                if (parsed.adminPin) memoryState.adminPin = normalizeDigits(parsed.adminPin);
+                applyInMemorySnapshot();
+                showToast(`تم استيراد ${parsed.items.length} مادة بنجاح!`, "success");
+            } catch (err) {
+                console.error("JSON import error:", err);
+                showToast("تعذر قراءة ملف النسخة الاحتياطية JSON", "error");
+            } finally {
+                event.target.value = "";
+            }
+        }
+
+        // =====================================================================
+        // التشغيل عند تحميل الصفحة
+        // =====================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            runSelfCheck();
+            loadStaffPreferences();
+            setQuickDateRange('week');
+            applyInMemorySnapshot();
+            syncAdminUiState();
+        });
+    </script>
+</body>
+</html>
