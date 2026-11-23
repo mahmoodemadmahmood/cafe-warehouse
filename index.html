@@ -1533,22 +1533,76 @@
             renderInventoryGrid();
         }
 
+            function normalizeArabicSearch(text) {
+            return String(text || '')
+                .toLowerCase()
+                .replace(/[أإآا]/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ى/g, 'ي')
+                .replace(/ؤ/g, 'و')
+                .replace(/ئ/g, 'ي')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
         function renderInventoryGrid() {
-            const queryText = document.getElementById('search-items-input').value.trim().toLowerCase();
+            const rawQuery = document.getElementById('search-items-input').value.trim();
+            const normalizedQuery = normalizeArabicSearch(rawQuery);
             const clearBtn = document.getElementById('clear-search-btn');
-            if (queryText) clearBtn.classList.remove('hidden');
+            if (rawQuery) clearBtn.classList.remove('hidden');
             else clearBtn.classList.add('hidden');
+
+            const searchSynonyms = {
+                'كوب': ['كلاص', 'سلاش'],
+                'اكواب': ['كلاص', 'سلاش'],
+                'قصبه': ['كصب'],
+                'قصبات': ['كصب'],
+                'جكليت': ['شوكولا', 'شوكولاته'],
+                'منجا': ['منكا'],
+                'فراوله': ['فروله']
+            };
+
+            const queryTokens = normalizedQuery ? normalizedQuery.split(' ').filter(Boolean) : [];
 
             const zeroStockItems = itemsList.filter(i => (Number(i.stock) || 0) <= 0);
             document.getElementById('zero-stock-badge').textContent = zeroStockItems.length;
 
-            const filtered = itemsList.filter(item => {
-                const matchesSearch = item.name.toLowerCase().includes(queryText) || item.category.toLowerCase().includes(queryText);
-                if (!matchesSearch) return false;
-                if (selectedCategory === 'all') return true;
-                if (selectedCategory === 'zero') return (Number(i.stock) || 0) <= 0;
-                return item.category === selectedCategory;
-            });
+            const filtered = itemsList
+                .filter(item => {
+                    const normName = normalizeArabicSearch(item.name);
+                    const normCat = normalizeArabicSearch(item.category);
+                    const combinedText = `${normName} ${normCat}`;
+
+                    if (queryTokens.length > 0) {
+                        return queryTokens.every(token => {
+                            const expandedTokens = [
+                                token,
+                                ...(searchSynonyms[token] || []).map(s => normalizeArabicSearch(s))
+                            ];
+                            return expandedTokens.some(t => combinedText.includes(t));
+                        });
+                    }
+
+                    if (selectedCategory === 'all') return true;
+                    if (selectedCategory === 'zero') return (Number(i.stock) || 0) <= 0;
+                    return item.category === selectedCategory;
+                })
+                .sort((a, b) => {
+                    if (!normalizedQuery) return (a.orderIndex || 999) - (b.orderIndex || 999);
+
+                    const aNormName = normalizeArabicSearch(a.name);
+                    const bNormName = normalizeArabicSearch(b.name);
+
+                    const aStarts = aNormName.startsWith(normalizedQuery) ? 0 : 1;
+                    const bStarts = bNormName.startsWith(normalizedQuery) ? 0 : 1;
+                    if (aStarts !== bStarts) return aStarts - bStarts;
+
+                    const aInName = aNormName.includes(normalizedQuery) ? 0 : 1;
+                    const bInName = bNormName.includes(normalizedQuery) ? 0 : 1;
+                    if (aInName !== bInName) return aInName - bInName;
+
+                    return (a.orderIndex || 999) - (b.orderIndex || 999);
+                });
 
             document.getElementById('displayed-items-count').textContent = filtered.length;
 
@@ -1622,6 +1676,7 @@
                 `;
             }).join('');
         }
+
 
         function openTransactionModal(itemId, type) {
             const staffName = document.getElementById('staff-name-input').value.trim();
